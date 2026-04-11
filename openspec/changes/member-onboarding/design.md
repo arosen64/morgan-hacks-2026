@@ -11,12 +11,14 @@ Member data lives off-chain in Convex DB and is resolved to wallet addresses at 
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Store members (name, wallet, role) in Convex DB scoped to a pool
 - Enforce uniqueness of name and wallet address within a pool
 - Expose name→wallet resolution for use by approval rule evaluation
 - Provide a UI form to join a pool and a member list on the pool dashboard
 
 **Non-Goals:**
+
 - On-chain member registration (wallets are resolved client-side from Convex)
 - Member removal or role changes (v1 scope)
 - Wallet signature verification at join time (trust-on-first-use for hackathon)
@@ -25,23 +27,28 @@ Member data lives off-chain in Convex DB and is resolved to wallet addresses at 
 ## Decisions
 
 **Decision 1: Convex DB as the single source of truth for member identity**
+
 - Rationale: Member data (names, roles) is off-chain metadata. Solana stores wallet addresses implicitly via signers; Convex stores the human-readable mapping. Keeping it in Convex keeps it cheap and queryable.
 - Alternative considered: Storing name→wallet in the on-chain contract account — rejected because it adds account size complexity and makes lookups expensive.
 
 **Decision 2: Uniqueness enforced at the Convex mutation layer**
+
 - Both `name` and `wallet` must be unique within a pool. Enforced in the `addMember` Convex mutation before insert.
 - Alternative considered: DB-level unique index — Convex supports indexes but not composite unique constraints natively, so we do a query-then-insert with an explicit check.
 
 **Decision 3: Role is an enum (`manager` | `member`) set at join time**
+
 - Keeps the approval rule engine simple: role-based rules just check this field.
 - The founder who creates the pool is automatically inserted as `manager`.
 
 **Decision 5: Pool has a `status` field (`pre-contract` | `active`)**
+
 - Pools start in `pre-contract` state. Transactions are blocked until a contract is created and the pool transitions to `active`.
 - This enforces the SPEC requirement: "A contract is required before any transactions can occur."
 - Alternative considered: check for existence of a contract record at transaction time — rejected because it scatters the gate logic; a status field on the pool is a single, clear source of truth.
 
 **Decision 4: Wallet connection via Solana wallet adapter (Phantom)**
+
 - The onboarding form pre-fills the wallet field from the connected wallet. User provides their name manually.
 - This avoids manual wallet address entry errors.
 

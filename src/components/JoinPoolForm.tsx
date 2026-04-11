@@ -22,7 +22,9 @@ export function JoinPoolForm({ poolId, onSuccess }: JoinPoolFormProps) {
   if (!connected || !publicKey) {
     return (
       <div className="rounded-lg border border-gray-200 p-6 flex flex-col items-center gap-3">
-        <p className="text-gray-600 text-sm">Connect your wallet to join this pool.</p>
+        <p className="text-gray-600 text-sm">
+          Connect your wallet to join this pool.
+        </p>
         <WalletMultiButton />
       </div>
     );
@@ -47,7 +49,10 @@ export function JoinPoolForm({ poolId, onSuccess }: JoinPoolFormProps) {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4 max-w-sm">
       <div className="flex flex-col gap-1">
-        <label className="text-sm font-medium text-gray-700" htmlFor="member-name">
+        <label
+          className="text-sm font-medium text-gray-700"
+          htmlFor="member-name"
+        >
           Your name
         </label>
         <input
@@ -62,7 +67,9 @@ export function JoinPoolForm({ poolId, onSuccess }: JoinPoolFormProps) {
       </div>
 
       <div className="flex flex-col gap-1">
-        <label className="text-sm font-medium text-gray-700">Wallet address</label>
+        <label className="text-sm font-medium text-gray-700">
+          Wallet address
+        </label>
         <input
           type="text"
           value={wallet}
@@ -72,9 +79,7 @@ export function JoinPoolForm({ poolId, onSuccess }: JoinPoolFormProps) {
       </div>
 
       {/* 3.3 — Inline validation error */}
-      {error && (
-        <p className="text-sm text-red-600">{error}</p>
-      )}
+      {error && <p className="text-sm text-red-600">{error}</p>}
 
       <button
         type="submit"

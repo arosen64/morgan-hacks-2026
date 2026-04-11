@@ -5,7 +5,11 @@ interface PoolStatusBannerProps {
 }
 
 // 5.1 — Status badge shown in dashboard header
-export function PoolStatusBadge({ status }: { status: "pre-contract" | "active" }) {
+export function PoolStatusBadge({
+  status,
+}: {
+  status: "pre-contract" | "active";
+}) {
   if (status === "active") {
     return (
       <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700">
@@ -23,14 +27,20 @@ export function PoolStatusBadge({ status }: { status: "pre-contract" | "active" 
 }
 
 // 5.2 + 5.3 — CTA for managers, waiting message for members
-export function PoolStatusBanner({ status, isManager, onCreateContract }: PoolStatusBannerProps) {
+export function PoolStatusBanner({
+  status,
+  isManager,
+  onCreateContract,
+}: PoolStatusBannerProps) {
   if (status === "active") return null;
 
   if (isManager) {
     return (
       <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 flex items-start justify-between gap-4">
         <div>
-          <p className="text-sm font-medium text-amber-800">No governing contract yet</p>
+          <p className="text-sm font-medium text-amber-800">
+            No governing contract yet
+          </p>
           <p className="text-xs text-amber-600 mt-0.5">
             Transactions are blocked until a contract is created and approved.
           </p>
@@ -49,7 +59,8 @@ export function PoolStatusBanner({ status, isManager, onCreateContract }: PoolSt
     <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
       <p className="text-sm font-medium text-gray-700">Waiting for contract</p>
       <p className="text-xs text-gray-500 mt-0.5">
-        A manager needs to create the governing contract before transactions are available.
+        A manager needs to create the governing contract before transactions are
+        available.
       </p>
     </div>
   );

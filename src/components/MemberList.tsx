@@ -36,7 +36,9 @@ export function MemberList({ poolId }: MemberListProps) {
         >
           <span className="font-medium text-gray-800">{m.name}</span>
           <div className="flex items-center gap-3">
-            <span className="text-xs text-gray-400 font-mono">{truncateWallet(m.wallet)}</span>
+            <span className="text-xs text-gray-400 font-mono">
+              {truncateWallet(m.wallet)}
+            </span>
             <span
               className={`rounded-full px-2 py-0.5 text-xs font-medium ${ROLE_STYLES[m.role] ?? ROLE_STYLES.member}`}
             >

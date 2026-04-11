@@ -17,10 +17,14 @@ export const addMember = mutation({
 
     for (const member of existing) {
       if (member.name === args.name) {
-        throw new Error(`A member named "${args.name}" already exists in this pool.`);
+        throw new Error(
+          `A member named "${args.name}" already exists in this pool.`,
+        );
       }
       if (member.wallet === args.wallet) {
-        throw new Error("This wallet address is already registered in this pool.");
+        throw new Error(
+          "This wallet address is already registered in this pool.",
+        );
       }
     }
 
@@ -55,7 +59,9 @@ export const resolveMemberWallet = query({
 
     const match = members.find((m) => m.name === args.name);
     if (!match) {
-      throw new Error(`Member "${args.name}" not found in pool "${args.poolId}".`);
+      throw new Error(
+        `Member "${args.name}" not found in pool "${args.poolId}".`,
+      );
     }
     return match.wallet;
   },

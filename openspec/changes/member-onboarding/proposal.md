@@ -14,10 +14,12 @@ Group treasury pools need to know who their members are before any governance ca
 ## Capabilities
 
 ### New Capabilities
+
 - `member-registry`: Store and manage pool members (name, wallet, role) in Convex DB with uniqueness enforcement per pool
 - `member-onboarding-ui`: Frontend form for joining a pool and a member list view on the pool dashboard
 
 ### Modified Capabilities
+
 <!-- None — no existing specs yet -->
 
 ## Impact
