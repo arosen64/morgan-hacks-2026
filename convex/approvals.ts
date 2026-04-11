@@ -241,3 +241,93 @@ export const getPoolProposals = query({
       .take(100);
   },
 });
+
+export const cancelProposal = mutation({
+  args: {
+    proposalId: v.id("proposals"),
+    memberId: v.id("members"),
+  },
+  handler: async (ctx, args) => {
+    const proposal = await ctx.db.get(args.proposalId);
+    if (!proposal) throw new Error("Proposal not found");
+    if (proposal.status !== "pending") {
+      throw new Error("Only pending proposals can be cancelled");
+    }
+    if (proposal.proposerId !== args.memberId) {
+      throw new Error("Only the proposer can cancel this proposal");
+    }
+    await ctx.db.patch(args.proposalId, { status: "rejected" });
+  },
+});
+
+export const getProposalsWithDetails = query({
+  args: {
+    poolId: v.id("pools"),
+    currentMemberId: v.optional(v.id("members")),
+  },
+  handler: async (ctx, args) => {
+    const pool = await ctx.db.get(args.poolId);
+    if (!pool) return null;
+
+    const proposals = await ctx.db
+      .query("proposals")
+      .withIndex("by_poolId", (q) => q.eq("poolId", args.poolId))
+      .take(200);
+
+    const memberRows = await ctx.db
+      .query("members")
+      .withIndex("by_poolId", (q) => q.eq("poolId", args.poolId))
+      .take(200);
+
+    const activeMembers = memberRows.filter((m) => m.isActive !== false);
+
+    const results = await Promise.all(
+      proposals.map(async (proposal) => {
+        const voteRows = await ctx.db
+          .query("votes")
+          .withIndex("by_proposalId", (q) => q.eq("proposalId", proposal._id))
+          .take(200);
+
+        const approvals = voteRows.filter((v) => v.vote === "approve").length;
+        const rejections = voteRows.filter((v) => v.vote === "reject").length;
+        const pending = activeMembers.length - voteRows.length;
+
+        const myVote = args.currentMemberId
+          ? (voteRows.find((v) => v.memberId === args.currentMemberId)?.vote ?? null)
+          : null;
+
+        const proposer = memberRows.find((m) => m._id === proposal.proposerId) ?? null;
+
+        const rule = resolveRuleForProposal(pool as any, proposal.type);
+        let quorumDescription = "";
+        switch (rule.type) {
+          case "unanimous":
+            quorumDescription = `${activeMembers.length} of ${activeMembers.length} approvals needed`;
+            break;
+          case "k-of-n":
+            quorumDescription = `${rule.k} of ${activeMembers.length} approvals needed`;
+            break;
+          case "named-set":
+            quorumDescription = `${rule.memberIds.length} specific members must approve`;
+            break;
+          case "role-based":
+            quorumDescription = `All members with role "${rule.role}" must approve`;
+            break;
+          case "tiered":
+            quorumDescription = "Tiered approval (see rule for details)";
+            break;
+        }
+
+        return {
+          ...proposal,
+          proposerName: proposer?.name ?? "Unknown",
+          tally: { approvals, rejections, pending, total: activeMembers.length },
+          myVote,
+          quorumDescription,
+        };
+      }),
+    );
+
+    return results;
+  },
+});
