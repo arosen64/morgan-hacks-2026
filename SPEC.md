@@ -68,7 +68,7 @@ Members join a pool by providing their **name and wallet address**. The name →
 {
   "members": [
     { "name": "Alice", "wallet": "...", "role": "manager" },
-    { "name": "Bob",   "wallet": "...", "role": "member" },
+    { "name": "Bob", "wallet": "...", "role": "member" },
     { "name": "Carol", "wallet": "...", "role": "member" }
   ]
 }
@@ -173,11 +173,13 @@ PROPOSED
 ## AI Integration
 
 ### Gemini API
+
 - Formalizes plain-language group rules → structured contract JSON
 - Assists contract amendments: current contract + natural language change → new contract version JSON
 - Validates a proposed transaction against contract terms (type allowed, budget in range, description coherent)
 
 ### Mastra Agents (Optional per Transaction — First Line of Defense)
+
 - Triggered when a proposer attaches a URL to a transaction
 - **Non-blocking**: transaction flow continues regardless of agent findings
 - **Fetch Agent**: retrieves and parses the linked page
@@ -221,14 +223,15 @@ Contract Amendment
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Blockchain | Solana (Anchor framework) |
-| AI Formalization | Google Gemini API |
-| Multi-Agent (optional) | Mastra |
-| Frontend | Next.js + Tailwind |
-| Wallet | Phantom / Solana wallet adapter |
-| Off-chain Storage | Convex DB (contract JSON, transaction metadata, member identity) |
+| Layer                  | Technology                                                       |
+| ---------------------- | ---------------------------------------------------------------- |
+| Blockchain             | Solana (Anchor framework)                                        |
+| AI Formalization       | Google Gemini API                                                |
+| Multi-Agent (optional) | Mastra                                                           |
+| Frontend               | Next.js + Tailwind + shadcn/ui                                   |
+| UI Components          | shadcn/ui (component library built on Radix UI + Tailwind)       |
+| Wallet                 | Phantom / Solana wallet adapter                                  |
+| Off-chain Storage      | Convex DB (contract JSON, transaction metadata, member identity) |
 
 ---
 

@@ -1,12 +1,9 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import { nodePolyfills } from 'vite-plugin-node-polyfills'
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [
-    react(),
-    nodePolyfills({ include: ['buffer', 'crypto', 'stream', 'util'] }),
-  ],
-  base: '/morgan-hacks-2026/',
-})
+  plugins: [react(), tailwindcss()],
+  base: "/morgan-hacks-2026/",
+});
