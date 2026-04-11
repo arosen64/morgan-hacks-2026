@@ -32,7 +32,7 @@ jobs:
         run: npm install
 
       - name: Deploy Convex backend to production
-        run: npx convex deploy --prod
+        run: npx convex deploy
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
 
