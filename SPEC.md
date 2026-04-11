@@ -68,7 +68,7 @@ Members join a pool by providing their **name and wallet address**. The name →
 {
   "members": [
     { "name": "Alice", "wallet": "...", "role": "manager" },
-    { "name": "Bob",   "wallet": "...", "role": "member" },
+    { "name": "Bob", "wallet": "...", "role": "member" },
     { "name": "Carol", "wallet": "...", "role": "member" }
   ]
 }
@@ -129,9 +129,11 @@ v1 <—> v2 <—> v3 (active)
 
 ### Creating / Amending the Contract
 
-- Founder describes rules in plain language → Gemini formalizes into structured contract JSON
+- Founder opens a rich text editor (Google Docs-like, powered by **Tiptap**) to author the contract
+- If a PDF exists, it can be uploaded → **Gemini** reads and extracts the content → pre-populated into the editor for review and editing
 - If no structure is provided, AI generates a reasonable default from group size and description
-- To **amend**: any member proposes a change in natural language → Gemini merges it into the current contract → group approves per amendment rules (default: unanimous) → new version appended and linked
+- To **amend**: any member opens the editor pre-loaded with the current contract → edits in place → group approves per amendment rules (default: unanimous) → new version appended and linked
+- Contract content is stored in Convex as Tiptap JSON (rich text format) per version
 
 ---
 
@@ -173,11 +175,14 @@ PROPOSED
 ## AI Integration
 
 ### Gemini API
+
+- **PDF extraction**: reads an uploaded PDF and extracts contract content into the Tiptap editor when no contract exists yet
 - Formalizes plain-language group rules → structured contract JSON
 - Assists contract amendments: current contract + natural language change → new contract version JSON
 - Validates a proposed transaction against contract terms (type allowed, budget in range, description coherent)
 
 ### Mastra Agents (Optional per Transaction — First Line of Defense)
+
 - Triggered when a proposer attaches a URL to a transaction
 - **Non-blocking**: transaction flow continues regardless of agent findings
 - **Fetch Agent**: retrieves and parses the linked page
@@ -221,14 +226,16 @@ Contract Amendment
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Blockchain | Solana (Anchor framework) |
-| AI Formalization | Google Gemini API |
-| Multi-Agent (optional) | Mastra |
-| Frontend | Next.js + Tailwind |
-| Wallet | Phantom / Solana wallet adapter |
-| Off-chain Storage | Convex DB (contract JSON, transaction metadata, member identity) |
+| Layer                  | Technology                                                       |
+| ---------------------- | ---------------------------------------------------------------- |
+| Blockchain             | Solana (Anchor framework)                                        |
+| AI Formalization       | Google Gemini API                                                |
+| Multi-Agent (optional) | Mastra                                                           |
+| Frontend               | Next.js + Tailwind + shadcn/ui                                   |
+| UI Components          | shadcn/ui (component library built on Radix UI + Tailwind)       |
+| Rich Text Editor       | Tiptap                                                           |
+| Wallet                 | Phantom / Solana wallet adapter                                  |
+| Off-chain Storage      | Convex DB (contract JSON, transaction metadata, member identity) |
 
 ---
 
@@ -236,9 +243,11 @@ Contract Amendment
 
 - [ ] Solana program: treasury deposit, transaction proposal, approval gating, immediate execution at threshold
 - [ ] Contract required before any transactions; version hash + full doubly linked list stored on-chain
-- [ ] Full contract JSON per version stored in Convex DB; all versions browsable in UI
+- [ ] Full contract content per version stored in Convex DB (Tiptap JSON); all versions browsable in UI
+- [ ] Rich text contract editor (Tiptap) — Google Docs-like; create new contract or amend existing
+- [ ] PDF upload → Gemini extraction → pre-populated editor (when no contract exists)
 - [ ] Member onboarding: name + wallet address input; name → wallet mapping throughout
-- [ ] Gemini: plain language → structured contract; assists amendments
+- [ ] Gemini: PDF extraction → contract editor; assists amendments
 - [ ] Fully group-defined approval rules (any structure); amendment defaults to unanimous
 - [ ] Transaction validation against contract; proposer can cancel anytime before threshold
 - [ ] Proposer can amend on validation failure or approver rejection; amendment restarts the process

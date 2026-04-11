@@ -1,3 +1,7 @@
+playground-keypair.json
+target/
+.anchor/
+
 # Logs
 logs
 *.log

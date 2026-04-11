@@ -25,27 +25,27 @@ async function loadVotesForProposal(
   return rows.map((r: any) => ({ memberId: r.memberId, vote: r.vote }));
 }
 
-async function loadActiveMembersForGroup(
+async function loadActiveMembersForPool(
   ctx: { db: { query: Function } },
-  groupId: Id<"groups">,
+  poolId: Id<"pools">,
 ): Promise<MemberSnapshot[]> {
   const rows = await (ctx.db as any)
     .query("members")
-    .withIndex("by_groupId", (q: any) => q.eq("groupId", groupId))
+    .withIndex("by_poolId", (q: any) => q.eq("poolId", poolId))
     .collect();
   return rows
-    .filter((m: any) => m.isActive)
-    .map((m: any) => ({ id: m._id, role: m.role, isActive: m.isActive }));
+    .filter((m: any) => m.isActive !== false) // absent treated as active
+    .map((m: any) => ({ id: m._id, role: m.role, isActive: true }));
 }
 
 function resolveRuleForProposal(
-  group: { approvalRule?: ApprovalRule; amendmentApprovalRule?: ApprovalRule },
+  pool: { approvalRule?: ApprovalRule; amendmentApprovalRule?: ApprovalRule },
   proposalType: "transaction" | "amendment",
 ): ApprovalRule {
   if (proposalType === "amendment") {
-    return effectiveAmendmentRule(group.amendmentApprovalRule as ApprovalRule | undefined);
+    return effectiveAmendmentRule(pool.amendmentApprovalRule as ApprovalRule | undefined);
   }
-  return (group.approvalRule as ApprovalRule | undefined) ?? { type: "unanimous" };
+  return (pool.approvalRule as ApprovalRule | undefined) ?? { type: "unanimous" };
 }
 
 // ---------------------------------------------------------------------------
@@ -65,13 +65,11 @@ export const castVote = mutation({
       throw new Error(`Proposal is already ${proposal.status}`);
     }
 
-    // Verify member belongs to this group and is active
     const member = await ctx.db.get(args.memberId);
-    if (!member || !member.isActive || member.groupId !== proposal.groupId) {
-      throw new Error("Member is not an active member of this group");
+    if (!member || member.isActive === false || member.poolId !== proposal.poolId) {
+      throw new Error("Member is not an active member of this pool");
     }
 
-    // Prevent double voting
     const existing = await ctx.db
       .query("votes")
       .withIndex("by_proposalId_and_memberId", (q) =>
@@ -86,45 +84,40 @@ export const castVote = mutation({
       vote: args.vote,
     });
 
-    // Load everything needed for rule evaluation
-    const group = await ctx.db.get(proposal.groupId);
-    if (!group) throw new Error("Group not found");
+    const pool = await ctx.db.get(proposal.poolId);
+    if (!pool) throw new Error("Pool not found");
 
-    const rule = resolveRuleForProposal(
-      group as any,
-      proposal.type,
-    );
+    const rule = resolveRuleForProposal(pool as any, proposal.type);
     const votes = await loadVotesForProposal(ctx, args.proposalId);
-    const members = await loadActiveMembersForGroup(ctx, proposal.groupId);
+    const members = await loadActiveMembersForPool(ctx, proposal.poolId);
 
     if (evaluateApprovalRule(rule, votes, members, proposal.amount ?? undefined)) {
       await ctx.db.patch(args.proposalId, { status: "approved" });
     } else if (!canStillReachQuorum(rule, votes, members, proposal.amount ?? undefined)) {
       await ctx.db.patch(args.proposalId, { status: "rejected" });
     }
-    // else: still pending
   },
 });
 
 export const createProposal = mutation({
   args: {
-    groupId: v.id("groups"),
+    poolId: v.id("pools"),
     proposerId: v.id("members"),
     type: v.union(v.literal("transaction"), v.literal("amendment")),
     description: v.string(),
     amount: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const group = await ctx.db.get(args.groupId);
-    if (!group) throw new Error("Group not found");
+    const pool = await ctx.db.get(args.poolId);
+    if (!pool) throw new Error("Pool not found");
 
     const proposer = await ctx.db.get(args.proposerId);
-    if (!proposer || !proposer.isActive || proposer.groupId !== args.groupId) {
-      throw new Error("Proposer is not an active member of this group");
+    if (!proposer || proposer.isActive === false || proposer.poolId !== args.poolId) {
+      throw new Error("Proposer is not an active member of this pool");
     }
 
     return await ctx.db.insert("proposals", {
-      groupId: args.groupId,
+      poolId: args.poolId,
       proposerId: args.proposerId,
       type: args.type,
       description: args.description,
@@ -139,22 +132,22 @@ export const createProposal = mutation({
 // ---------------------------------------------------------------------------
 
 export const reEvaluatePendingProposals = internalMutation({
-  args: { groupId: v.id("groups") },
+  args: { poolId: v.id("pools") },
   handler: async (ctx, args) => {
-    const group = await ctx.db.get(args.groupId);
-    if (!group) return;
+    const pool = await ctx.db.get(args.poolId);
+    if (!pool) return;
 
     const pending = await ctx.db
       .query("proposals")
-      .withIndex("by_groupId_and_status", (q) =>
-        q.eq("groupId", args.groupId).eq("status", "pending"),
+      .withIndex("by_poolId_and_status", (q) =>
+        q.eq("poolId", args.poolId).eq("status", "pending"),
       )
       .take(50);
 
-    const members = await loadActiveMembersForGroup(ctx, args.groupId);
+    const members = await loadActiveMembersForPool(ctx, args.poolId);
 
     for (const proposal of pending) {
-      const rule = resolveRuleForProposal(group as any, proposal.type);
+      const rule = resolveRuleForProposal(pool as any, proposal.type);
       const votes = await loadVotesForProposal(ctx, proposal._id);
 
       if (!canStillReachQuorum(rule, votes, members, proposal.amount ?? undefined)) {
@@ -174,8 +167,8 @@ export const getProposalVotes = query({
     const proposal = await ctx.db.get(args.proposalId);
     if (!proposal) return null;
 
-    const group = await ctx.db.get(proposal.groupId);
-    if (!group) return null;
+    const pool = await ctx.db.get(proposal.poolId);
+    if (!pool) return null;
 
     const voteRows = await ctx.db
       .query("votes")
@@ -184,17 +177,16 @@ export const getProposalVotes = query({
 
     const memberRows = await ctx.db
       .query("members")
-      .withIndex("by_groupId", (q) => q.eq("groupId", proposal.groupId))
+      .withIndex("by_poolId", (q) => q.eq("poolId", proposal.poolId))
       .collect();
 
-    const activeMembers = memberRows.filter((m) => m.isActive);
+    const activeMembers = memberRows.filter((m) => m.isActive !== false);
     const approvals = voteRows.filter((v) => v.vote === "approve").length;
     const rejections = voteRows.filter((v) => v.vote === "reject").length;
     const pending = activeMembers.length - voteRows.length;
 
-    const rule = resolveRuleForProposal(group as any, proposal.type);
+    const rule = resolveRuleForProposal(pool as any, proposal.type);
 
-    // Compute a human-readable quorum description
     let quorumDescription = "";
     switch (rule.type) {
       case "unanimous":
@@ -227,9 +219,9 @@ export const getProposalVotes = query({
   },
 });
 
-export const getGroupProposals = query({
+export const getPoolProposals = query({
   args: {
-    groupId: v.id("groups"),
+    poolId: v.id("pools"),
     status: v.optional(
       v.union(v.literal("pending"), v.literal("approved"), v.literal("rejected")),
     ),
@@ -238,14 +230,14 @@ export const getGroupProposals = query({
     if (args.status) {
       return await ctx.db
         .query("proposals")
-        .withIndex("by_groupId_and_status", (q) =>
-          q.eq("groupId", args.groupId).eq("status", args.status!),
+        .withIndex("by_poolId_and_status", (q) =>
+          q.eq("poolId", args.poolId).eq("status", args.status!),
         )
         .take(100);
     }
     return await ctx.db
       .query("proposals")
-      .withIndex("by_groupId", (q) => q.eq("groupId", args.groupId))
+      .withIndex("by_poolId", (q) => q.eq("poolId", args.poolId))
       .take(100);
   },
 });

@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { Id } from "../../convex/_generated/dataModel";
+import type { Id } from "../../convex/_generated/dataModel";
 
 type Props = {
   proposalId: Id<"proposals">;
@@ -31,7 +31,6 @@ export function ProposalVoting({ proposalId, currentMemberId }: Props) {
         {proposal.type}
       </p>
 
-      {/* Status badge */}
       {proposal.status !== "pending" ? (
         <div
           style={{
@@ -49,7 +48,6 @@ export function ProposalVoting({ proposalId, currentMemberId }: Props) {
         </div>
       ) : null}
 
-      {/* Tally */}
       <div style={{ display: "flex", gap: 24, marginBottom: 8, fontSize: 14 }}>
         <span style={{ color: "#28a745" }}>✓ {tally.approvals} approved</span>
         <span style={{ color: "#dc3545" }}>✗ {tally.rejections} rejected</span>
@@ -57,7 +55,6 @@ export function ProposalVoting({ proposalId, currentMemberId }: Props) {
       </div>
       <p style={{ margin: "0 0 12px", fontSize: 13, color: "#555" }}>{quorumDescription}</p>
 
-      {/* Vote buttons — only shown while pending */}
       {isPending && (
         <div style={{ display: "flex", gap: 8 }}>
           <button

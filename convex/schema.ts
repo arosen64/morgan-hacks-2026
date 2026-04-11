@@ -3,24 +3,50 @@ import { v } from "convex/values";
 import { approvalRuleValidator } from "./lib/validators";
 
 export default defineSchema({
-  groups: defineTable({
+  pools: defineTable({
     name: v.string(),
+    status: v.union(v.literal("pre-contract"), v.literal("active")),
+    activeContractHash: v.optional(v.string()),
     approvalRule: v.optional(approvalRuleValidator),
     amendmentApprovalRule: v.optional(approvalRuleValidator),
   }),
 
   members: defineTable({
-    groupId: v.id("groups"),
+    poolId: v.id("pools"),
     name: v.string(),
     wallet: v.string(),
-    role: v.string(),
-    isActive: v.boolean(),
+    role: v.union(v.literal("manager"), v.literal("member")),
+    isActive: v.optional(v.boolean()), // optional for backward compat; absent treated as active
   })
-    .index("by_groupId", ["groupId"])
-    .index("by_groupId_and_wallet", ["groupId", "wallet"]),
+    .index("by_poolId", ["poolId"])
+    .index("by_poolId_and_wallet", ["poolId", "wallet"]),
+
+  contracts: defineTable({
+    poolId: v.id("pools"),
+    hash: v.string(),
+    versionNumber: v.number(),
+    contractJson: v.string(),
+    prevHash: v.optional(v.string()),
+    nextHash: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_poolId", ["poolId"])
+    .index("by_hash", ["hash"]),
+
+  contractVersions: defineTable({
+    poolId: v.string(),
+    version: v.number(),
+    versionHash: v.string(),
+    prevVersionHash: v.union(v.string(), v.null()),
+    nextVersionHash: v.union(v.string(), v.null()),
+    content: v.any(),
+    createdAt: v.number(),
+  })
+    .index("by_poolId", ["poolId"])
+    .index("by_versionHash", ["versionHash"]),
 
   proposals: defineTable({
-    groupId: v.id("groups"),
+    poolId: v.id("pools"),
     type: v.union(v.literal("transaction"), v.literal("amendment")),
     proposerId: v.id("members"),
     description: v.string(),
@@ -31,8 +57,8 @@ export default defineSchema({
       v.literal("rejected"),
     ),
   })
-    .index("by_groupId", ["groupId"])
-    .index("by_groupId_and_status", ["groupId", "status"]),
+    .index("by_poolId", ["poolId"])
+    .index("by_poolId_and_status", ["poolId", "status"]),
 
   votes: defineTable({
     proposalId: v.id("proposals"),

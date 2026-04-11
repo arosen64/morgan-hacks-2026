@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { Id } from "../../convex/_generated/dataModel";
+import type { Id } from "../../convex/_generated/dataModel";
 
 type RuleType = "unanimous" | "k-of-n" | "named-set" | "role-based" | "tiered";
 
@@ -13,53 +13,29 @@ type ApprovalRule =
   | { type: "tiered"; tiers: Array<{ maxAmount?: number; rule: ApprovalRule }> };
 
 type Props = {
-  groupId: Id<"groups">;
+  poolId: Id<"pools">;
   /** "transaction" edits the main approvalRule; "amendment" edits amendmentApprovalRule */
   target: "transaction" | "amendment";
   onSaved?: () => void;
 };
 
-function buildDefaultRule(type: RuleType): ApprovalRule {
-  switch (type) {
-    case "unanimous":
-      return { type: "unanimous" };
-    case "k-of-n":
-      return { type: "k-of-n", k: 2, n: 3 };
-    case "named-set":
-      return { type: "named-set", memberIds: [] };
-    case "role-based":
-      return { type: "role-based", role: "manager" };
-    case "tiered":
-      return {
-        type: "tiered",
-        tiers: [
-          { maxAmount: 1_000_000_000, rule: { type: "k-of-n", k: 2, n: 3 } },
-          { rule: { type: "unanimous" } },
-        ],
-      };
-  }
-}
-
-export function ApprovalRuleEditor({ groupId, target, onSaved }: Props) {
-  const group = useQuery(api.groups.getGroup, { groupId });
-  const members = useQuery(api.groups.getGroupMembers, { groupId });
+export function ApprovalRuleEditor({ poolId, target, onSaved }: Props) {
+  const pool = useQuery(api.pools.getPool, { poolId });
+  const members = useQuery(api.members.getMembers, { poolId });
 
   const saveApprovalRule = useMutation(api.groups.saveApprovalRule);
   const saveAmendmentRule = useMutation(api.groups.saveAmendmentApprovalRule);
 
   const currentRule =
     target === "transaction"
-      ? (group?.approvalRule as ApprovalRule | undefined)
-      : (group?.amendmentApprovalRule as ApprovalRule | undefined);
+      ? (pool?.approvalRule as ApprovalRule | undefined)
+      : (pool?.amendmentApprovalRule as ApprovalRule | undefined);
 
   const [ruleType, setRuleType] = useState<RuleType>(
-    currentRule?.type ?? (target === "amendment" ? "unanimous" : "unanimous"),
+    currentRule?.type ?? "unanimous",
   );
   const [kValue, setKValue] = useState(
     currentRule?.type === "k-of-n" ? currentRule.k : 2,
-  );
-  const [nValue] = useState(
-    currentRule?.type === "k-of-n" ? currentRule.n : 3,
   );
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>(
     currentRule?.type === "named-set" ? currentRule.memberIds : [],
@@ -79,13 +55,12 @@ export function ApprovalRuleEditor({ groupId, target, onSaved }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const activeMembers = members?.filter((m) => m.isActive) ?? [];
+  const activeMembers = members?.filter((m) => m.isActive !== false) ?? [];
 
-  // Warn if named-set has members not in the group
   const namedSetWarning =
     ruleType === "named-set" &&
     selectedMemberIds.some((id) => !activeMembers.find((m) => m._id === id))
-      ? "One or more selected members are not active in this group."
+      ? "One or more selected members are not active in this pool."
       : null;
 
   function buildRule(): ApprovalRule {
@@ -93,7 +68,7 @@ export function ApprovalRuleEditor({ groupId, target, onSaved }: Props) {
       case "unanimous":
         return { type: "unanimous" };
       case "k-of-n":
-        return { type: "k-of-n", k: kValue, n: activeMembers.length || nValue };
+        return { type: "k-of-n", k: kValue, n: activeMembers.length };
       case "named-set":
         return { type: "named-set", memberIds: selectedMemberIds };
       case "role-based":
@@ -109,9 +84,9 @@ export function ApprovalRuleEditor({ groupId, target, onSaved }: Props) {
     try {
       const rule = buildRule();
       if (target === "transaction") {
-        await saveApprovalRule({ groupId, rule });
+        await saveApprovalRule({ poolId, rule });
       } else {
-        await saveAmendmentRule({ groupId, rule });
+        await saveAmendmentRule({ poolId, rule });
       }
       onSaved?.();
     } catch (e: unknown) {
@@ -137,7 +112,7 @@ export function ApprovalRuleEditor({ groupId, target, onSaved }: Props) {
     );
   }
 
-  if (!group || !members) return <div>Loading...</div>;
+  if (!pool || !members) return <div>Loading...</div>;
 
   return (
     <div style={{ padding: 16, border: "1px solid #ddd", borderRadius: 8, maxWidth: 520 }}>
@@ -186,7 +161,7 @@ export function ApprovalRuleEditor({ groupId, target, onSaved }: Props) {
         <div style={{ marginBottom: 12 }}>
           <span style={{ fontSize: 13, fontWeight: 600 }}>Select required approvers</span>
           {activeMembers.length === 0 && (
-            <p style={{ fontSize: 13, color: "#888" }}>No members in this group yet.</p>
+            <p style={{ fontSize: 13, color: "#888" }}>No members in this pool yet.</p>
           )}
           {activeMembers.map((m) => (
             <label
@@ -213,14 +188,15 @@ export function ApprovalRuleEditor({ groupId, target, onSaved }: Props) {
 
       {ruleType === "role-based" && (
         <label style={{ display: "block", marginBottom: 12 }}>
-          <span style={{ fontSize: 13, fontWeight: 600 }}>Role name</span>
-          <input
-            type="text"
+          <span style={{ fontSize: 13, fontWeight: 600 }}>Role</span>
+          <select
             value={roleName}
             onChange={(e) => setRoleName(e.target.value)}
-            placeholder="e.g. manager"
             style={{ display: "block", marginTop: 4, width: "100%", padding: "6px 8px" }}
-          />
+          >
+            <option value="manager">manager</option>
+            <option value="member">member</option>
+          </select>
         </label>
       )}
 
