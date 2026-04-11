@@ -135,16 +135,16 @@ pub struct Proposal {
 }
 
 impl Proposal {
-    // Generous fixed allocation covering the largest possible variant.
+    // Borsh serializes enums as 1-byte discriminant + fields of the active variant only.
+    // The largest variant is AddMember: 1 (disc) + 32 (pubkey) + 4 (len) + 50 (username) = 87.
+    // (Spending=41, AmendContract=33, SwitchContract=41 — all smaller.)
+    const PROPOSAL_TYPE_MAX_SIZE: usize = 1 + 32 + 4 + MAX_USERNAME_LEN; // 87
+
     pub const BASE_SIZE: usize = 8      // discriminator
         + 32   // treasury
         + 32   // proposer
         + 8    // proposal_id
-        + 1    // ProposalType discriminant
-        + 32 + 8   // Spending: recipient + amount (largest scalar variant)
-        + 32 + 4 + MAX_USERNAME_LEN  // AddMember: pubkey + username
-        + 32   // AmendContract/SwitchContract hash
-        + 8    // SwitchContract target_version
+        + Self::PROPOSAL_TYPE_MAX_SIZE  // proposal_type (worst-case AddMember variant)
         + 4 + MAX_DESCRIPTION_LEN  // description
         + 4 + MAX_CATEGORY_LEN     // category
         + 1    // has_url
@@ -362,7 +362,9 @@ pub mod treasury {
                 require!(treasury.has_contract, TreasuryError::ContractNotSet);
                 require!(*amount_lamports > 0, TreasuryError::InvalidAmount);
                 let bal = treasury.to_account_info().lamports();
-                require!(bal >= *amount_lamports, TreasuryError::InsufficientFunds);
+                let rent_min = Rent::get()?.minimum_balance(treasury.to_account_info().data_len());
+                let available = bal.saturating_sub(rent_min);
+                require!(available >= *amount_lamports, TreasuryError::InsufficientFunds);
             }
             ProposalType::AmendContract { .. } => {
                 require!(treasury.has_contract, TreasuryError::ContractNotSet);
@@ -444,17 +446,20 @@ pub mod treasury {
 
             match proposal_type {
                 ProposalType::Spending { recipient, amount_lamports } => {
-                    // recipient must be passed as remaining_accounts[0]
+                    // recipient must be passed as a writable account in remaining_accounts
                     let recipient_info = ctx
                         .remaining_accounts
                         .iter()
                         .find(|a| a.key() == recipient)
                         .ok_or(error!(TreasuryError::Unauthorized))?;
 
-                    let treasury_lamports = ctx.accounts.treasury.to_account_info().lamports();
-                    require!(treasury_lamports >= amount_lamports, TreasuryError::InsufficientFunds);
+                    let treasury_info = ctx.accounts.treasury.to_account_info();
+                    let treasury_lamports = treasury_info.lamports();
+                    let rent_min = Rent::get()?.minimum_balance(treasury_info.data_len());
+                    let available = treasury_lamports.saturating_sub(rent_min);
+                    require!(available >= amount_lamports, TreasuryError::InsufficientFunds);
 
-                    **ctx.accounts.treasury.to_account_info().try_borrow_mut_lamports()? -= amount_lamports;
+                    **treasury_info.try_borrow_mut_lamports()? -= amount_lamports;
                     **recipient_info.try_borrow_mut_lamports()? += amount_lamports;
                 }
 
@@ -648,7 +653,6 @@ pub struct VoteOnProposal<'info> {
     )]
     pub proposal: Account<'info, Proposal>,
 
-    #[account(mut)]
     pub voter: Signer<'info>,
 }
 
