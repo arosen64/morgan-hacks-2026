@@ -68,7 +68,7 @@ Members join a pool by providing their **name and wallet address**. The name →
 {
   "members": [
     { "name": "Alice", "wallet": "...", "role": "manager" },
-    { "name": "Bob",   "wallet": "...", "role": "member" },
+    { "name": "Bob", "wallet": "...", "role": "member" },
     { "name": "Carol", "wallet": "...", "role": "member" }
   ]
 }
@@ -173,11 +173,13 @@ PROPOSED
 ## AI Integration
 
 ### Gemini API
+
 - Formalizes plain-language group rules → structured contract JSON
 - Assists contract amendments: current contract + natural language change → new contract version JSON
 - Validates a proposed transaction against contract terms (type allowed, budget in range, description coherent)
 
 ### Mastra Agents (Optional per Transaction — First Line of Defense)
+
 - Triggered when a proposer attaches a URL to a transaction
 - **Non-blocking**: transaction flow continues regardless of agent findings
 - **Fetch Agent**: retrieves and parses the linked page
@@ -221,14 +223,36 @@ Contract Amendment
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Blockchain | Solana (Anchor framework) |
-| AI Formalization | Google Gemini API |
-| Multi-Agent (optional) | Mastra |
-| Frontend | Next.js + Tailwind |
-| Wallet | Phantom / Solana wallet adapter |
-| Off-chain Storage | Convex DB (contract JSON, transaction metadata, member identity) |
+| Layer                  | Technology                                                       |
+| ---------------------- | ---------------------------------------------------------------- |
+| Blockchain             | Solana (Anchor framework)                                        |
+| AI Formalization       | Google Gemini API                                                |
+| Multi-Agent (optional) | Mastra                                                           |
+| Frontend               | Next.js + Tailwind + shadcn/ui                                   |
+| UI Components          | shadcn/ui (component library built on Radix UI + Tailwind)       |
+| Design                 | Pencil MCP (`.pen` files for layout specs and wireframes)        |
+| Wallet                 | Phantom / Solana wallet adapter                                  |
+| Off-chain Storage      | Convex DB (contract JSON, transaction metadata, member identity) |
+
+---
+
+## Design Tooling
+
+UI layouts and wireframes are authored as **Pencil MCP `.pen` files**. These are the source of truth for screen designs and are read/written exclusively via the Pencil MCP tools (not raw file editors).
+
+- All screen designs live in `.pen` files at the root of the project
+- Use `batch_get` to read design nodes and `batch_design` to make changes
+- UI components are implemented using **shadcn/ui** — a component library built on Radix UI primitives and styled with Tailwind CSS
+- When adding new UI, create the `.pen` layout first, then implement it with shadcn/ui components
+
+### Key Screens
+
+- Pool creation + contract setup
+- Member onboarding (name + wallet address)
+- Contract viewer / version history browser
+- Transaction proposal form
+- Approval voting view (with Mastra report if present)
+- Treasury dashboard
 
 ---
 
