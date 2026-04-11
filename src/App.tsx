@@ -12,8 +12,9 @@ import {
 } from "./components/PoolStatusBanner";
 import { ContractCreationPage } from "./components/ContractCreationPage";
 import { ContractHistoryPage } from "./components/ContractHistoryPage";
+import { AllTransactionsPage } from "./components/AllTransactionsPage";
 
-type View = "dashboard" | "join" | "create-contract" | "contract-history";
+type View = "dashboard" | "join" | "create-contract" | "contract-history" | "all-transactions";
 
 export default function App() {
   const { publicKey, connected } = useWallet();
@@ -127,6 +128,18 @@ export default function App() {
     );
   }
 
+  if (view === "all-transactions") {
+    return (
+      <div className="min-h-screen p-8 max-w-4xl mx-auto">
+        <AllTransactionsPage
+          poolId={poolId}
+          currentMemberId={currentMember?._id ?? null}
+          onBack={() => setView("dashboard")}
+        />
+      </div>
+    );
+  }
+
   // Dashboard
   return (
     <div className="min-h-screen p-8 max-w-lg mx-auto flex flex-col gap-6">
@@ -138,12 +151,22 @@ export default function App() {
           </h1>
           <PoolStatusBadge status={poolStatus} />
         </div>
-        <button
-          onClick={() => setView(view === "join" ? "dashboard" : "join")}
-          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50"
-        >
-          {view === "join" ? "← Back" : "+ Add Member"}
-        </button>
+        <div className="flex items-center gap-2">
+          {poolStatus === "active" && (
+            <button
+              onClick={() => setView("all-transactions")}
+              className="rounded-md border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50"
+            >
+              All Transactions
+            </button>
+          )}
+          <button
+            onClick={() => setView(view === "join" ? "dashboard" : "join")}
+            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50"
+          >
+            {view === "join" ? "← Back" : "+ Add Member"}
+          </button>
+        </div>
       </div>
 
       {/* 6.1 — Pre-contract banner with wired Create Contract CTA */}
