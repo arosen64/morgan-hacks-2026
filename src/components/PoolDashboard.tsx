@@ -6,6 +6,8 @@ import type { Id } from "../../convex/_generated/dataModel";
 import { ContractCreationPage } from "./ContractCreationPage";
 import { ContractHistoryPage } from "./ContractHistoryPage";
 import { AllTransactionsPage } from "./AllTransactionsPage";
+import { AmendContractPage } from "./AmendContractPage";
+import { CreateProposalPage } from "./CreateProposalPage";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,7 +17,9 @@ type View =
   | "dashboard"
   | "create-contract"
   | "contract-history"
-  | "all-transactions";
+  | "all-transactions"
+  | "amend-contract"
+  | "create-proposal";
 
 interface PoolDashboardProps {
   poolId: Id<"pools">;
@@ -69,12 +73,33 @@ export function PoolDashboard({
     );
   }
 
+  if (view === "amend-contract") {
+    return (
+      <AmendContractPage
+        poolId={poolId}
+        onSuccess={() => setView("dashboard")}
+        onBack={() => setView("dashboard")}
+      />
+    );
+  }
+
+  if (view === "create-proposal" && currentMember) {
+    return (
+      <CreateProposalPage
+        poolId={poolId}
+        currentMemberId={currentMember._id}
+        onSuccess={() => setView("all-transactions")}
+        onBack={() => setView("dashboard")}
+      />
+    );
+  }
+
   // ── Action button definitions ──────────────────────────────────────────────
 
   const actions: { label: string; onClick: () => void }[] = [
     {
       label: "Request Transaction",
-      onClick: () => {}, // issue #25
+      onClick: () => setView("create-proposal"),
     },
     {
       label: "Contract",
@@ -86,6 +111,10 @@ export function PoolDashboard({
     {
       label: "All Transactions",
       onClick: () => setView("all-transactions"),
+    },
+    {
+      label: "Amend Contract",
+      onClick: () => setView("amend-contract"),
     },
     {
       label: "Add Money",

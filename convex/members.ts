@@ -51,7 +51,7 @@ export const getMembers = query({
   },
 });
 
-// Returns all pools for the given wallet address, with role in each
+// Returns all pools a wallet address belongs to, with their role in each
 export const getPoolsByWallet = query({
   args: { wallet: v.string() },
   handler: async (ctx, args) => {

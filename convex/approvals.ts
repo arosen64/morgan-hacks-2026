@@ -131,6 +131,9 @@ export const createProposal = mutation({
     type: v.union(v.literal("transaction"), v.literal("amendment")),
     description: v.string(),
     amount: v.optional(v.number()),
+    geminiValidation: v.optional(
+      v.object({ pass: v.boolean(), explanation: v.string() }),
+    ),
   },
   handler: async (ctx, args) => {
     const pool = await ctx.db.get(args.poolId);
@@ -152,6 +155,7 @@ export const createProposal = mutation({
       description: args.description,
       amount: args.amount,
       status: "pending",
+      geminiValidation: args.geminiValidation,
     });
   },
 });
