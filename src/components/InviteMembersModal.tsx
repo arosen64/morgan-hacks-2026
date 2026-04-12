@@ -35,8 +35,8 @@ export function InviteMembersModal({
         <DialogHeader>
           <DialogTitle>Invite Members</DialogTitle>
           <DialogDescription>
-            Share this pool ID with anyone you want to invite. They can enter it
-            in the "Join Pool" flow.
+            Share this pot ID with anyone you want to invite. They can enter it
+            in the "Join Pot" flow.
           </DialogDescription>
         </DialogHeader>
         <div className="flex items-center gap-2 mt-2">

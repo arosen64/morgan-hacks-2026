@@ -70,7 +70,7 @@ function PoolDetailsStep({
   return (
     <div className="flex flex-col gap-6 max-w-md w-full">
       <div>
-        <h2 className="text-2xl font-bold tracking-tight">Create a Pool</h2>
+        <h2 className="text-2xl font-bold tracking-tight">Create a Pot</h2>
         <p className="text-sm text-muted-foreground mt-1">
           Name your group treasury and tell us who you are.
         </p>
@@ -78,7 +78,7 @@ function PoolDetailsStep({
 
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium">Pool Name</label>
+          <label className="text-sm font-medium">Pot Name</label>
           <input
             type="text"
             value={poolName}
@@ -214,7 +214,7 @@ function ContractBuilderStep({
       setError(
         err instanceof Error
           ? err.message
-          : "Failed to create pool. Please try again.",
+          : "Failed to create pot. Please try again.",
       );
     } finally {
       setConfirming(false);
@@ -240,7 +240,7 @@ function ContractBuilderStep({
             disabled={confirming}
             onClick={handleConfirm}
           >
-            {confirming ? "Creating pool…" : "Confirm & Create Pool ✓"}
+            {confirming ? "Creating pot…" : "Confirm & Create Pot ✓"}
           </Button>
         )}
       </div>
@@ -333,7 +333,7 @@ function ContractBuilderStep({
         onClick={onBack}
         className="mt-3 text-xs text-muted-foreground hover:text-foreground text-center"
       >
-        ← Back to pool details
+        ← Back to pot details
       </button>
     </div>
   );

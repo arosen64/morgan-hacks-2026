@@ -122,7 +122,7 @@ export function AddMoneyModal({
           <div className="flex flex-col gap-1">
             <h2 className="text-lg font-semibold">Add Money</h2>
             <p className="text-sm text-muted-foreground">
-              Deposit SOL into the pool treasury from your Phantom wallet.
+              Deposit SOL into the pot treasury from your Phantom wallet.
             </p>
           </div>
           <button

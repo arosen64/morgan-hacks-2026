@@ -73,7 +73,7 @@ export function AllTransactionsPage({
           <div className="flex items-end justify-between gap-4">
             <div className="flex flex-col gap-1">
               <p className="text-zinc-400 text-sm font-medium uppercase tracking-widest">
-                Pool Activity
+                Pot Activity
               </p>
               <h1 className="text-4xl font-bold tracking-tight text-zinc-900">
                 All Transactions

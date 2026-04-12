@@ -133,14 +133,14 @@ export function PoolDashboard({
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
             <p className="text-sm text-muted-foreground">
-              Your request to join <strong>{pool?.name ?? "this pool"}</strong>{" "}
+              Your request to join <strong>{pool?.name ?? "this pot"}</strong>{" "}
               is awaiting manager approval.
             </p>
             <button
               onClick={onBack}
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
-              ← Back to pools
+              ← Back to pots
             </button>
           </CardContent>
         </Card>
@@ -220,7 +220,7 @@ export function PoolDashboard({
               <Skeleton className="h-9 w-48" />
             ) : (
               <h1 className="text-3xl font-bold tracking-tight">
-                {pool?.name ?? "Pool"}
+                {pool?.name ?? "Pot"}
               </h1>
             )}
             <Badge

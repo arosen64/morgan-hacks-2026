@@ -65,7 +65,7 @@ export function MainMenu({ onSelectPool, walletAddress }: MainMenuProps) {
   function handleLookup() {
     const parsed = parsePoolId(joinInput);
     if (parsed.length < 10) {
-      setInputError("Enter a valid pool ID or invite link.");
+      setInputError("Enter a valid pot ID or invite link.");
       return;
     }
     setInputError(null);
@@ -128,11 +128,11 @@ export function MainMenu({ onSelectPool, walletAddress }: MainMenuProps) {
       <div className="px-8 pt-16 pb-10 max-w-xl mx-auto text-center flex flex-col items-center gap-4">
         <div className="inline-flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50 px-4 py-1.5 text-sm font-medium text-violet-700">
           <div className="size-2 rounded-full bg-violet-500" />
-          Investment Pools
+          Your Pots
         </div>
-        <h1 className="text-5xl font-bold tracking-tight">My Pools</h1>
+        <h1 className="text-5xl font-bold tracking-tight">My Pots</h1>
         <p className="text-lg text-muted-foreground max-w-sm">
-          Manage your investment pools or start a new one with people you trust.
+          Manage your pots or start a new one with people you trust.
         </p>
         <div className="flex gap-3 mt-2">
           <Button
@@ -140,10 +140,10 @@ export function MainMenu({ onSelectPool, walletAddress }: MainMenuProps) {
             className="bg-violet-600 hover:bg-violet-700 text-white"
             onClick={() => setCreateOpen(true)}
           >
-            + Create Pool
+            + Create Pot
           </Button>
           <Button size="lg" variant="outline" onClick={() => setJoinOpen(true)}>
-            Join Pool
+            Join Pot
           </Button>
         </div>
       </div>
@@ -162,9 +162,9 @@ export function MainMenu({ onSelectPool, walletAddress }: MainMenuProps) {
               <div className="size-12 rounded-full bg-violet-50 flex items-center justify-center">
                 <div className="size-6 rounded-full border-2 border-violet-300" />
               </div>
-              <p className="font-medium">No pools yet</p>
+              <p className="font-medium">No pots yet</p>
               <p className="text-sm text-muted-foreground max-w-xs">
-                You're not a member of any pools. Create one or ask a manager to
+                You're not a member of any pots. Create one or ask a manager to
                 add you.
               </p>
             </CardContent>
@@ -223,12 +223,12 @@ export function MainMenu({ onSelectPool, walletAddress }: MainMenuProps) {
             <div className="flex items-start justify-between">
               <div className="flex flex-col gap-1">
                 <h2 className="text-lg font-semibold">
-                  {joinPhase === "input" ? "Join a Pool" : "Enter Your Name"}
+                  {joinPhase === "input" ? "Join a Pot" : "Enter Your Name"}
                 </h2>
                 <p className="text-sm text-muted-foreground">
                   {joinPhase === "input"
-                    ? "Paste an invite link or enter a pool ID."
-                    : "Choose a display name for this pool."}
+                    ? "Paste an invite link or enter a pot ID."
+                    : "Choose a display name for this pot."}
                 </p>
               </div>
               <button
@@ -254,7 +254,7 @@ export function MainMenu({ onSelectPool, walletAddress }: MainMenuProps) {
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && joinInput.trim()) handleLookup();
                   }}
-                  placeholder="Paste invite link or pool ID…"
+                  placeholder="Paste invite link or pot ID…"
                   className="rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
                   autoFocus
                 />
@@ -264,7 +264,7 @@ export function MainMenu({ onSelectPool, walletAddress }: MainMenuProps) {
                 )}
                 {lookupNotFound && (
                   <p className="text-sm text-red-600 -mt-2">
-                    Pool not found. Check the ID or invite link.
+                    Pot not found. Check the ID or invite link.
                   </p>
                 )}
 
@@ -301,7 +301,7 @@ export function MainMenu({ onSelectPool, walletAddress }: MainMenuProps) {
                       disabled={!joinInput.trim() || isLooking}
                       onClick={handleLookup}
                     >
-                      {isLooking ? "Looking up…" : "Look Up Pool"}
+                      {isLooking ? "Looking up…" : "Look Up Pot"}
                     </Button>
                   )}
                 </div>

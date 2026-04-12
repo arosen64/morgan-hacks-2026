@@ -65,7 +65,7 @@ export function ApprovalRuleEditor({ poolId, target, onSaved }: Props) {
   const namedSetWarning =
     ruleType === "named-set" &&
     selectedMemberIds.some((id) => !activeMembers.find((m) => m._id === id))
-      ? "One or more selected members are not active in this pool."
+      ? "One or more selected members are not active in this pot."
       : null;
 
   function buildRule(): ApprovalRule {
@@ -195,7 +195,7 @@ export function ApprovalRuleEditor({ poolId, target, onSaved }: Props) {
           </span>
           {activeMembers.length === 0 && (
             <p style={{ fontSize: 13, color: "#888" }}>
-              No members in this pool yet.
+              No members in this pot yet.
             </p>
           )}
           {activeMembers.map((m) => (

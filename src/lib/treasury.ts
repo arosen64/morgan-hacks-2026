@@ -1,8 +1,12 @@
 import { PublicKey, Connection } from "@solana/web3.js";
 
-export const TREASURY_PROGRAM_ID = new PublicKey(
-  import.meta.env.VITE_PROGRAM_ID as string,
-);
+const _programId = import.meta.env.VITE_PROGRAM_ID;
+if (!_programId) {
+  throw new Error(
+    "VITE_PROGRAM_ID is not set. Add it to your .env.local file.",
+  );
+}
+export const TREASURY_PROGRAM_ID = new PublicKey(_programId);
 
 /**
  * Derive a deterministic 32-byte seed from a Convex pool ID string.

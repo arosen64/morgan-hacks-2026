@@ -115,7 +115,7 @@ export function CreateProposalPage({
       {!isActive && (
         <Card className="border-amber-200 bg-amber-50">
           <CardContent className="px-4 py-3 text-sm text-amber-700">
-            This pool has no active contract. A contract must be created before
+            This pot has no active contract. A contract must be created before
             transactions can be proposed.
           </CardContent>
         </Card>
