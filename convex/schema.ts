@@ -13,7 +13,9 @@ export default defineSchema({
     name: v.string(),
     wallet: v.string(),
     role: v.union(v.literal("manager"), v.literal("member")),
-  }).index("by_poolId", ["poolId"]),
+  })
+    .index("by_poolId", ["poolId"])
+    .index("by_wallet", ["wallet"]),
 
   contracts: defineTable({
     poolId: v.id("pools"),

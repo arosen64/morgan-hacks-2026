@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import type { Doc } from "./_generated/dataModel";
 
 // 2.1 — Add a member to a pool, enforcing uniqueness of name and wallet within the pool
 export const addMember = mutation({
@@ -45,6 +46,26 @@ export const getMembers = query({
       .query("members")
       .withIndex("by_poolId", (q) => q.eq("poolId", args.poolId))
       .collect();
+  },
+});
+
+// Returns all pools a wallet address belongs to, with the member's role in each
+export const getPoolsByWallet = query({
+  args: { wallet: v.string() },
+  handler: async (ctx, args) => {
+    const memberships = await ctx.db
+      .query("members")
+      .withIndex("by_wallet", (q) => q.eq("wallet", args.wallet))
+      .take(100);
+
+    const result: { pool: Doc<"pools">; role: "manager" | "member" }[] = [];
+    for (const membership of memberships) {
+      const pool = await ctx.db.get(membership.poolId);
+      if (pool) {
+        result.push({ pool, role: membership.role });
+      }
+    }
+    return result;
   },
 });
 
