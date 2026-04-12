@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { useWallet } from "@solana/wallet-adapter-react";
 import type { Id } from "../convex/_generated/dataModel";
 import { SignInScreen } from "./components/SignInScreen";
 import { MainMenu } from "./components/MainMenu";
 import { PoolDashboard } from "./components/PoolDashboard";
+import { useWalletAuth } from "./hooks/useWalletAuth";
 
 // Read and immediately strip any ?pool= param from the URL on module load.
 // This runs once so the invite param doesn't persist on page refresh.
@@ -20,7 +20,8 @@ function consumeInvitePoolId(): Id<"pools"> | null {
 const initialInvitePoolId = consumeInvitePoolId();
 
 export default function App() {
-  const { publicKey, connected } = useWallet();
+  const { isLoading, isAuthenticated, authState, retrySignIn, walletAddress } =
+    useWalletAuth();
 
   // Track pool selection alongside the wallet that made it.
   // If the wallet changes (disconnect / reconnect), the selection is invalidated
@@ -36,11 +37,23 @@ export default function App() {
     initialInvitePoolId,
   );
 
-  if (!connected || !publicKey) {
-    return <SignInScreen />;
+  if (isLoading || !isAuthenticated || !walletAddress) {
+    return (
+      <SignInScreen
+        signingState={
+          authState.status === "signing"
+            ? "signing"
+            : authState.status === "error"
+              ? "error"
+              : undefined
+        }
+        errorMessage={
+          authState.status === "error" ? authState.message : undefined
+        }
+        onRetry={authState.status === "error" ? retrySignIn : undefined}
+      />
+    );
   }
-
-  const walletAddress = publicKey.toBase58();
 
   // If a selection exists for the current wallet, use it.
   // Otherwise, if an invite pool ID was in the URL, auto-select it.
@@ -52,7 +65,6 @@ export default function App() {
   if (!activePoolId) {
     return (
       <MainMenu
-        walletAddress={walletAddress}
         onSelectPool={(poolId) =>
           setSelection({ wallet: walletAddress, poolId })
         }

@@ -62,6 +62,12 @@ export default defineSchema({
     .index("by_poolId", ["poolId"])
     .index("by_poolId_and_status", ["poolId", "status"]),
 
+  nonces: defineTable({
+    wallet: v.string(),
+    nonce: v.string(),
+    createdAt: v.number(),
+  }).index("by_wallet", ["wallet"]),
+
   votes: defineTable({
     proposalId: v.id("proposals"),
     memberId: v.id("members"),

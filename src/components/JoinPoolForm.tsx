@@ -1,6 +1,4 @@
 import { useState } from "react";
-import { useWallet } from "@solana/wallet-adapter-react";
-import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
@@ -11,33 +9,18 @@ interface JoinPoolFormProps {
 }
 
 export function JoinPoolForm({ poolId, onSuccess }: JoinPoolFormProps) {
-  const { publicKey, connected } = useWallet();
   const addMember = useMutation(api.members.addMember);
 
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // 3.4 — Prompt to connect wallet if none connected
-  if (!connected || !publicKey) {
-    return (
-      <div className="rounded-lg border border-gray-200 p-6 flex flex-col items-center gap-3">
-        <p className="text-gray-600 text-sm">
-          Connect your wallet to join this pool.
-        </p>
-        <WalletMultiButton />
-      </div>
-    );
-  }
-
-  const wallet = publicKey.toBase58();
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setLoading(true);
     try {
-      await addMember({ poolId, name: name.trim(), wallet, role: "member" });
+      await addMember({ poolId, name: name.trim(), role: "member" });
       onSuccess(); // 3.5 — trigger redirect / parent callback on success
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to join pool.");
@@ -63,18 +46,6 @@ export function JoinPoolForm({ poolId, onSuccess }: JoinPoolFormProps) {
           placeholder="e.g. Alice"
           required
           className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-      </div>
-
-      <div className="flex flex-col gap-1">
-        <label className="text-sm font-medium text-gray-700">
-          Wallet address
-        </label>
-        <input
-          type="text"
-          value={wallet}
-          readOnly
-          className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-500 cursor-not-allowed"
         />
       </div>
 

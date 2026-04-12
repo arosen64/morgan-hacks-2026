@@ -1,16 +1,22 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { ConvexError } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
 
-// 2.1 — Add a member to a pool, enforcing uniqueness of name and wallet within the pool
+// 2.1 — Add a member to a pool, enforcing uniqueness of name and wallet within the pool.
+// The caller's wallet address is derived from their auth token — no wallet arg accepted.
 export const addMember = mutation({
   args: {
     poolId: v.id("pools"),
     name: v.string(),
-    wallet: v.string(),
     role: v.union(v.literal("manager"), v.literal("member")),
   },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new ConvexError("Unauthenticated");
+
+    const wallet = identity.tokenIdentifier;
+
     const existing = await ctx.db
       .query("members")
       .withIndex("by_poolId", (q) => q.eq("poolId", args.poolId))
@@ -22,7 +28,7 @@ export const addMember = mutation({
           `A member named "${args.name}" already exists in this pool.`,
         );
       }
-      if (member.wallet === args.wallet) {
+      if (member.wallet === wallet) {
         throw new Error(
           "This wallet address is already registered in this pool.",
         );
@@ -32,7 +38,7 @@ export const addMember = mutation({
     return await ctx.db.insert("members", {
       poolId: args.poolId,
       name: args.name,
-      wallet: args.wallet,
+      wallet,
       role: args.role,
     });
   },
@@ -49,13 +55,17 @@ export const getMembers = query({
   },
 });
 
-// Returns all pools a wallet address belongs to, with the member's role in each
+// Returns all pools the authenticated caller belongs to, with their role in each
 export const getPoolsByWallet = query({
-  args: { wallet: v.string() },
-  handler: async (ctx, args) => {
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
+
+    const wallet = identity.tokenIdentifier;
     const memberships = await ctx.db
       .query("members")
-      .withIndex("by_wallet", (q) => q.eq("wallet", args.wallet))
+      .withIndex("by_wallet", (q) => q.eq("wallet", wallet))
       .take(100);
 
     const result: { pool: Doc<"pools">; role: "manager" | "member" }[] = [];

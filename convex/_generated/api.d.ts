@@ -9,13 +9,16 @@
  */
 
 import type * as approvals from "../approvals.js";
+import type * as authHelpers from "../authHelpers.js";
 import type * as contractPdf from "../contractPdf.js";
 import type * as contractVersions from "../contractVersions.js";
 import type * as contracts from "../contracts.js";
 import type * as groups from "../groups.js";
+import type * as http from "../http.js";
 import type * as lib_approvalRules from "../lib/approvalRules.js";
 import type * as lib_validators from "../lib/validators.js";
 import type * as members from "../members.js";
+import type * as nonces from "../nonces.js";
 import type * as pools from "../pools.js";
 import type * as seed from "../seed.js";
 
@@ -27,13 +30,16 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   approvals: typeof approvals;
+  authHelpers: typeof authHelpers;
   contractPdf: typeof contractPdf;
   contractVersions: typeof contractVersions;
   contracts: typeof contracts;
   groups: typeof groups;
+  http: typeof http;
   "lib/approvalRules": typeof lib_approvalRules;
   "lib/validators": typeof lib_validators;
   members: typeof members;
+  nonces: typeof nonces;
   pools: typeof pools;
   seed: typeof seed;
 }>;

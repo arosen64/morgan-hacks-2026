@@ -23,11 +23,11 @@ function parsePoolId(value: string): string {
   return value.trim();
 }
 
-export function MainMenu({ walletAddress, onSelectPool }: MainMenuProps) {
+export function MainMenu({
+  onSelectPool,
+}: Omit<MainMenuProps, "walletAddress">) {
   const { disconnect } = useWallet();
-  const pools = useQuery(api.members.getPoolsByWallet, {
-    wallet: walletAddress,
-  });
+  const pools = useQuery(api.members.getPoolsByWallet, {});
   const [joinOpen, setJoinOpen] = useState(false);
   const [joinInput, setJoinInput] = useState("");
 
