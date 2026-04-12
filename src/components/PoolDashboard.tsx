@@ -3,17 +3,16 @@ import { useQuery } from "convex/react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
-import { JoinPoolForm } from "./JoinPoolForm";
-import { MemberList } from "./MemberList";
-import { PoolStatusBadge, PoolStatusBanner } from "./PoolStatusBanner";
 import { ContractCreationPage } from "./ContractCreationPage";
 import { ContractHistoryPage } from "./ContractHistoryPage";
 import { AllTransactionsPage } from "./AllTransactionsPage";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type View =
   | "dashboard"
-  | "join"
   | "create-contract"
   | "contract-history"
   | "all-transactions";
@@ -36,204 +35,209 @@ export function PoolDashboard({
   const members = useQuery(api.members.getMembers, { poolId });
 
   const currentMember = members?.find((m) => m.wallet === walletAddress);
-  const isManager = currentMember?.role === "manager";
-  const poolStatus = pool?.status ?? "pre-contract";
+  const role = currentMember?.role ?? "member";
+
+  // ── Sub-pages ──────────────────────────────────────────────────────────────
 
   if (view === "create-contract") {
     return (
-      <div className="min-h-screen p-8 max-w-lg mx-auto">
-        <ContractCreationPage
-          poolId={poolId}
-          onSuccess={() => setView("dashboard")}
-          onBack={() => setView("dashboard")}
-        />
-      </div>
+      <ContractCreationPage
+        poolId={poolId}
+        onSuccess={() => setView("dashboard")}
+        onBack={() => setView("dashboard")}
+      />
     );
   }
 
   if (view === "contract-history") {
     return (
-      <div className="min-h-screen p-8 max-w-lg mx-auto">
-        <ContractHistoryPage
-          poolId={poolId}
-          activeHash={pool?.activeContractHash}
-          onBack={() => setView("dashboard")}
-        />
-      </div>
+      <ContractHistoryPage
+        poolId={poolId}
+        activeHash={pool?.activeContractHash}
+        onBack={() => setView("dashboard")}
+      />
     );
   }
 
   if (view === "all-transactions") {
     return (
-      <div className="min-h-screen p-8 max-w-4xl mx-auto">
-        <AllTransactionsPage
-          poolId={poolId}
-          currentMemberId={currentMember?._id ?? null}
-          onBack={() => setView("dashboard")}
-        />
-      </div>
+      <AllTransactionsPage
+        poolId={poolId}
+        currentMemberId={currentMember?._id ?? null}
+        onBack={() => setView("dashboard")}
+      />
     );
   }
 
+  // ── Action button definitions ──────────────────────────────────────────────
+
+  const actions: { label: string; onClick: () => void }[] = [
+    {
+      label: "Request Transaction",
+      onClick: () => {}, // issue #25
+    },
+    {
+      label: "Contract",
+      onClick: () =>
+        pool?.status === "pre-contract"
+          ? setView("create-contract")
+          : setView("contract-history"),
+    },
+    {
+      label: "All Transactions",
+      onClick: () => setView("all-transactions"),
+    },
+    {
+      label: "Add Money",
+      onClick: () => {}, // issue #28
+    },
+    {
+      label: "Invite Members",
+      onClick: () => {}, // issue #29
+    },
+  ];
+
+  // ── Main dashboard ─────────────────────────────────────────────────────────
+
   return (
-    <div className="min-h-screen p-8 max-w-lg mx-auto flex flex-col gap-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={onBack}>
-            ← Back
-          </Button>
-          <h1 className="text-2xl font-bold">
-            {pool?.name ?? "Pool Dashboard"}
-          </h1>
-          <PoolStatusBadge status={poolStatus} />
+    <div className="min-h-screen bg-background">
+      {/* Top nav — identical to MainMenu */}
+      <header className="border-b border-border px-8 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <div className="size-7 rounded-lg bg-violet-500" />
+          <span className="text-lg font-semibold tracking-tight">Potlock</span>
         </div>
-        <div className="flex gap-2">
-          {poolStatus === "active" && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setView("all-transactions")}
-            >
-              All Transactions
-            </Button>
-          )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setView(view === "join" ? "dashboard" : "join")}
+        <Button variant="ghost" size="sm" onClick={() => disconnect()}>
+          Disconnect
+        </Button>
+      </header>
+
+      <div className="max-w-xl mx-auto px-8 py-8 flex flex-col gap-6">
+        {/* Back + pool name + role */}
+        <div className="flex flex-col gap-2">
+          <button
+            onClick={onBack}
+            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors w-fit"
           >
-            {view === "join" ? "← Back" : "+ Add Member"}
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => disconnect()}>
-            Disconnect
-          </Button>
-        </div>
-      </div>
-
-      {/* Pre-contract banner */}
-      <PoolStatusBanner
-        status={poolStatus}
-        isManager={isManager}
-        onCreateContract={() => setView("create-contract")}
-      />
-
-      {view === "join" ? (
-        <div className="flex flex-col gap-4">
-          <h2 className="text-lg font-semibold">Join Pool</h2>
-          <JoinPoolForm
-            poolId={poolId}
-            onSuccess={() => setView("dashboard")}
-          />
-        </div>
-      ) : (
-        <div className="flex flex-col gap-6">
-          {/* Active contract summary */}
-          {poolStatus === "active" && pool?.activeContractHash && (
-            <ActiveContractSummary
-              activeHash={pool.activeContractHash}
-              onViewHistory={() => setView("contract-history")}
-            />
-          )}
-
-          <div className="flex flex-col gap-4">
-            <h2 className="text-lg font-semibold">Members</h2>
-            <MemberList poolId={poolId} />
+            ← Back
+          </button>
+          <div className="flex items-center gap-3">
+            {pool === undefined ? (
+              <Skeleton className="h-9 w-48" />
+            ) : (
+              <h1 className="text-3xl font-bold tracking-tight">
+                {pool?.name ?? "Pool"}
+              </h1>
+            )}
+            <Badge
+              className={
+                role === "manager" ? "bg-violet-600 hover:bg-violet-600" : ""
+              }
+              variant={role === "manager" ? "default" : "secondary"}
+            >
+              {role === "manager" ? "Manager" : "Member"}
+            </Badge>
           </div>
         </div>
-      )}
-    </div>
-  );
-}
 
-function ActiveContractSummary({
-  activeHash,
-  onViewHistory,
-}: {
-  activeHash: string;
-  onViewHistory: () => void;
-}) {
-  const contract = useQuery(api.contracts.getContractByHash, {
-    hash: activeHash,
-  });
-  if (!contract) return null;
+        {/* Treasury Balance */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Treasury Balance
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-4xl font-bold tracking-tight">—</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Live balance available once Add Money is set up.
+            </p>
+          </CardContent>
+        </Card>
 
-  let parsed: Record<string, unknown> = {};
-  try {
-    parsed = JSON.parse(contract.contractJson);
-  } catch {
-    return null;
-  }
+        {/* Members */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Members
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-1">
+            {members === undefined ? (
+              <>
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </>
+            ) : members.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-2">
+                No members yet.
+              </p>
+            ) : (
+              members.map((member) => {
+                // contributedLamports is in the schema but Convex types regenerate on next `convex dev`
+                const contributed = (
+                  member as typeof member & { contributedLamports?: number }
+                ).contributedLamports;
+                return (
+                  <div
+                    key={member._id}
+                    className="flex items-center justify-between py-2.5 border-b border-border last:border-0"
+                  >
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-sm font-medium">{member.name}</span>
+                      <span className="text-xs font-mono text-muted-foreground">
+                        {member.wallet.slice(0, 4)}…{member.wallet.slice(-4)}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold">
+                        {contributed
+                          ? `${(contributed / 1e9).toFixed(4)} SOL`
+                          : "0 SOL"}
+                      </span>
+                      <Badge
+                        variant={
+                          member.role === "manager" ? "default" : "secondary"
+                        }
+                        className={
+                          member.role === "manager"
+                            ? "bg-violet-600 hover:bg-violet-600 text-xs"
+                            : "text-xs"
+                        }
+                      >
+                        {member.role}
+                      </Badge>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </CardContent>
+        </Card>
 
-  return (
-    <div className="rounded-lg border border-gray-200 p-4 flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Governing Contract</h2>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400">
-            v{contract.versionNumber}
-          </span>
-          <button
-            onClick={onViewHistory}
-            className="text-xs text-blue-500 hover:text-blue-700"
-          >
-            View History →
-          </button>
-        </div>
+        {/* Actions */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Actions
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-3">
+              {actions.map(({ label, onClick }) => (
+                <Button
+                  key={label}
+                  variant="outline"
+                  className="h-12 text-sm font-medium"
+                  onClick={onClick}
+                >
+                  {label}
+                </Button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
-      <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-        <ContractSummaryField
-          label="Allowed types"
-          value={
-            Array.isArray(parsed.allowed_transaction_types)
-              ? (parsed.allowed_transaction_types as string[]).join(", ")
-              : "—"
-          }
-        />
-        <ContractSummaryField
-          label="Budget limit"
-          value={
-            parsed.budget_limits
-              ? `${(parsed.budget_limits as Record<string, number>).per_transaction_max_sol} SOL`
-              : "—"
-          }
-        />
-        <ContractSummaryField
-          label="Approval rules"
-          value={
-            parsed.approval_rules
-              ? JSON.stringify(
-                  (parsed.approval_rules as Record<string, unknown>).default,
-                )
-              : "—"
-          }
-        />
-        <ContractSummaryField
-          label="Amendment rules"
-          value={
-            parsed.approval_rules
-              ? JSON.stringify(
-                  (parsed.approval_rules as Record<string, unknown>).amendment,
-                )
-              : "—"
-          }
-        />
-      </dl>
-    </div>
-  );
-}
-
-function ContractSummaryField({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
-  return (
-    <div>
-      <dt className="text-xs font-medium text-gray-500">{label}</dt>
-      <dd className="text-sm text-gray-800 break-words">{value}</dd>
     </div>
   );
 }
