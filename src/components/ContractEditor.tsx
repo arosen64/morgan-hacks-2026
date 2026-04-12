@@ -40,8 +40,8 @@ function ToolbarButton({
       type="button"
       title={title}
       onClick={onClick}
-      className={`p-1.5 rounded hover:bg-muted transition-colors ${
-        active ? "bg-muted text-primary" : "text-muted-foreground"
+      className={`p-1.5 rounded hover:bg-violet-50 transition-colors ${
+        active ? "bg-violet-100 text-violet-700" : "text-muted-foreground"
       }`}
     >
       {children}
@@ -87,97 +87,96 @@ export function ContractEditor({
   };
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">
-              {activeVersion ? "Amend Contract" : "Create Contract"}
-            </h1>
-            <p className="text-muted-foreground text-sm mt-1">Pool: {poolId}</p>
-          </div>
-          <Button onClick={handleSave} className="gap-2">
-            <Save className="w-4 h-4" />
-            Save Contract
-          </Button>
+    <div className="p-6">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">
+            {activeVersion ? "Amend Contract" : "Create Contract"}
+          </h1>
+          <p className="text-muted-foreground text-sm mt-1">Pool: {poolId}</p>
         </div>
-
-        <Card>
-          <CardHeader className="pb-0">
-            <div className="flex items-center gap-1 flex-wrap">
-              <ToolbarButton
-                title="Bold"
-                onClick={() => editor?.chain().focus().toggleBold().run()}
-                active={editor?.isActive("bold")}
-              >
-                <Bold className="w-4 h-4" />
-              </ToolbarButton>
-              <ToolbarButton
-                title="Italic"
-                onClick={() => editor?.chain().focus().toggleItalic().run()}
-                active={editor?.isActive("italic")}
-              >
-                <Italic className="w-4 h-4" />
-              </ToolbarButton>
-              <Separator orientation="vertical" className="h-6 mx-1" />
-              <ToolbarButton
-                title="Heading 1"
-                onClick={() =>
-                  editor?.chain().focus().toggleHeading({ level: 1 }).run()
-                }
-                active={editor?.isActive("heading", { level: 1 })}
-              >
-                <Heading1 className="w-4 h-4" />
-              </ToolbarButton>
-              <ToolbarButton
-                title="Heading 2"
-                onClick={() =>
-                  editor?.chain().focus().toggleHeading({ level: 2 }).run()
-                }
-                active={editor?.isActive("heading", { level: 2 })}
-              >
-                <Heading2 className="w-4 h-4" />
-              </ToolbarButton>
-              <Separator orientation="vertical" className="h-6 mx-1" />
-              <ToolbarButton
-                title="Bullet List"
-                onClick={() => editor?.chain().focus().toggleBulletList().run()}
-                active={editor?.isActive("bulletList")}
-              >
-                <List className="w-4 h-4" />
-              </ToolbarButton>
-              <ToolbarButton
-                title="Numbered List"
-                onClick={() =>
-                  editor?.chain().focus().toggleOrderedList().run()
-                }
-                active={editor?.isActive("orderedList")}
-              >
-                <ListOrdered className="w-4 h-4" />
-              </ToolbarButton>
-              <Separator orientation="vertical" className="h-6 mx-1" />
-              <ToolbarButton
-                title="Blockquote"
-                onClick={() => editor?.chain().focus().toggleBlockquote().run()}
-                active={editor?.isActive("blockquote")}
-              >
-                <Quote className="w-4 h-4" />
-              </ToolbarButton>
-              <ToolbarButton
-                title="Code"
-                onClick={() => editor?.chain().focus().toggleCode().run()}
-                active={editor?.isActive("code")}
-              >
-                <Code className="w-4 h-4" />
-              </ToolbarButton>
-            </div>
-          </CardHeader>
-          <Separator className="mt-3" />
-          <CardContent className="p-0">
-            <EditorContent editor={editor} />
-          </CardContent>
-        </Card>
+        <Button
+          onClick={handleSave}
+          className="gap-2 bg-violet-600 hover:bg-violet-700"
+        >
+          <Save className="w-4 h-4" />
+          Save Contract
+        </Button>
       </div>
+
+      <Card>
+        <CardHeader className="pb-0">
+          <div className="flex items-center gap-1 flex-wrap">
+            <ToolbarButton
+              title="Bold"
+              onClick={() => editor?.chain().focus().toggleBold().run()}
+              active={editor?.isActive("bold")}
+            >
+              <Bold className="w-4 h-4" />
+            </ToolbarButton>
+            <ToolbarButton
+              title="Italic"
+              onClick={() => editor?.chain().focus().toggleItalic().run()}
+              active={editor?.isActive("italic")}
+            >
+              <Italic className="w-4 h-4" />
+            </ToolbarButton>
+            <Separator orientation="vertical" className="h-6 mx-1" />
+            <ToolbarButton
+              title="Heading 1"
+              onClick={() =>
+                editor?.chain().focus().toggleHeading({ level: 1 }).run()
+              }
+              active={editor?.isActive("heading", { level: 1 })}
+            >
+              <Heading1 className="w-4 h-4" />
+            </ToolbarButton>
+            <ToolbarButton
+              title="Heading 2"
+              onClick={() =>
+                editor?.chain().focus().toggleHeading({ level: 2 }).run()
+              }
+              active={editor?.isActive("heading", { level: 2 })}
+            >
+              <Heading2 className="w-4 h-4" />
+            </ToolbarButton>
+            <Separator orientation="vertical" className="h-6 mx-1" />
+            <ToolbarButton
+              title="Bullet List"
+              onClick={() => editor?.chain().focus().toggleBulletList().run()}
+              active={editor?.isActive("bulletList")}
+            >
+              <List className="w-4 h-4" />
+            </ToolbarButton>
+            <ToolbarButton
+              title="Numbered List"
+              onClick={() => editor?.chain().focus().toggleOrderedList().run()}
+              active={editor?.isActive("orderedList")}
+            >
+              <ListOrdered className="w-4 h-4" />
+            </ToolbarButton>
+            <Separator orientation="vertical" className="h-6 mx-1" />
+            <ToolbarButton
+              title="Blockquote"
+              onClick={() => editor?.chain().focus().toggleBlockquote().run()}
+              active={editor?.isActive("blockquote")}
+            >
+              <Quote className="w-4 h-4" />
+            </ToolbarButton>
+            <ToolbarButton
+              title="Code"
+              onClick={() => editor?.chain().focus().toggleCode().run()}
+              active={editor?.isActive("code")}
+            >
+              <Code className="w-4 h-4" />
+            </ToolbarButton>
+          </div>
+        </CardHeader>
+        <Separator className="mt-3" />
+        <CardContent className="p-0">
+          <EditorContent editor={editor} />
+        </CardContent>
+      </Card>
     </div>
   );
 }

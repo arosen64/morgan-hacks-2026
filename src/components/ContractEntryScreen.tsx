@@ -71,107 +71,107 @@ export function ContractEntryScreen({ poolId }: ContractEntryScreenProps) {
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-6">
-      <div className="w-full max-w-2xl">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 mb-4">
-            <FileText className="w-6 h-6 text-primary" />
+    <div className="p-6">
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-violet-100">
+            <FileText className="w-5 h-5 text-violet-600" />
           </div>
-          <h1 className="text-3xl font-bold text-foreground">
+          <h1 className="text-2xl font-bold text-foreground">
             Create Your Contract
           </h1>
-          <p className="text-muted-foreground mt-2">
-            No contract exists for this pool yet. Choose how you'd like to get
-            started.
-          </p>
         </div>
+        <p className="text-muted-foreground text-sm">
+          No contract exists for this pool yet. Choose how you'd like to get
+          started.
+        </p>
+      </div>
 
-        {state.mode === "error" && (
-          <div className="flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 mb-6 text-sm text-destructive">
-            <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-            <div>
-              <p className="font-medium">PDF extraction failed</p>
-              <p className="text-destructive/80 mt-0.5">
-                {state.message}. Please try again or create from scratch.
-              </p>
-            </div>
+      {state.mode === "error" && (
+        <div className="flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 mb-6 text-sm text-destructive">
+          <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+          <div>
+            <p className="font-medium">PDF extraction failed</p>
+            <p className="text-destructive/80 mt-0.5">
+              {state.message}. Please try again or create from scratch.
+            </p>
           </div>
-        )}
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Card
-            className="cursor-pointer hover:border-primary/50 hover:shadow-sm transition-all group"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <CardHeader>
-              <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center mb-2 group-hover:bg-primary/10 transition-colors">
-                {state.mode === "uploading" ? (
-                  <Loader2 className="w-5 h-5 text-muted-foreground animate-spin" />
-                ) : (
-                  <Upload className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
-                )}
-              </div>
-              <CardTitle className="text-base">Upload a PDF</CardTitle>
-              <CardDescription>
-                Import an existing contract. Gemini will extract the content
-                into the editor for you to review and edit.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button
-                variant="outline"
-                className="w-full"
-                disabled={state.mode === "uploading"}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  fileInputRef.current?.click();
-                }}
-              >
-                {state.mode === "uploading" ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />{" "}
-                    Extracting...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="w-4 h-4 mr-2" /> Choose PDF
-                  </>
-                )}
-              </Button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="application/pdf"
-                onChange={handlePdfChange}
-                className="hidden"
-              />
-            </CardContent>
-          </Card>
-
-          <Card
-            className="cursor-pointer hover:border-primary/50 hover:shadow-sm transition-all group"
-            onClick={() => setState({ mode: "scratch" })}
-          >
-            <CardHeader>
-              <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center mb-2 group-hover:bg-primary/10 transition-colors">
-                <PenLine className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
-              </div>
-              <CardTitle className="text-base">Create from Scratch</CardTitle>
-              <CardDescription>
-                Open a blank editor and write your contract directly using our
-                rich text editor.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button
-                className="w-full"
-                onClick={() => setState({ mode: "scratch" })}
-              >
-                <PenLine className="w-4 h-4 mr-2" /> Start Writing
-              </Button>
-            </CardContent>
-          </Card>
         </div>
+      )}
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Card
+          className="cursor-pointer hover:border-violet-300 hover:shadow-sm transition-all group"
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <CardHeader>
+            <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center mb-2 group-hover:bg-violet-100 transition-colors">
+              {state.mode === "uploading" ? (
+                <Loader2 className="w-5 h-5 text-muted-foreground animate-spin" />
+              ) : (
+                <Upload className="w-5 h-5 text-muted-foreground group-hover:text-violet-600 transition-colors" />
+              )}
+            </div>
+            <CardTitle className="text-base">Upload a PDF</CardTitle>
+            <CardDescription>
+              Import an existing contract. Gemini will extract the content into
+              the editor for you to review and edit.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button
+              variant="outline"
+              className="w-full border-violet-200 text-violet-700 hover:bg-violet-50"
+              disabled={state.mode === "uploading"}
+              onClick={(e) => {
+                e.stopPropagation();
+                fileInputRef.current?.click();
+              }}
+            >
+              {state.mode === "uploading" ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />{" "}
+                  Extracting...
+                </>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4 mr-2" /> Choose PDF
+                </>
+              )}
+            </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="application/pdf"
+              onChange={handlePdfChange}
+              className="hidden"
+            />
+          </CardContent>
+        </Card>
+
+        <Card
+          className="cursor-pointer hover:border-violet-300 hover:shadow-sm transition-all group"
+          onClick={() => setState({ mode: "scratch" })}
+        >
+          <CardHeader>
+            <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center mb-2 group-hover:bg-violet-100 transition-colors">
+              <PenLine className="w-5 h-5 text-muted-foreground group-hover:text-violet-600 transition-colors" />
+            </div>
+            <CardTitle className="text-base">Create from Scratch</CardTitle>
+            <CardDescription>
+              Open a blank editor and write your contract directly using our
+              rich text editor.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button
+              className="w-full bg-violet-600 hover:bg-violet-700"
+              onClick={() => setState({ mode: "scratch" })}
+            >
+              <PenLine className="w-4 h-4 mr-2" /> Start Writing
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
