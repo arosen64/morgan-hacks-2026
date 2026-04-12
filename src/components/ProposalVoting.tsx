@@ -14,7 +14,8 @@ export function ProposalVoting({ proposalId, currentMemberId }: Props) {
   if (!data) return <div>Loading...</div>;
 
   const { proposal, tally, votes, quorumDescription } = data;
-  const myVote = votes.find((v) => v.memberId === currentMemberId)?.vote ?? null;
+  const myVote =
+    votes.find((v) => v.memberId === currentMemberId)?.vote ?? null;
   const isPending = proposal.status === "pending";
 
   async function handleVote(vote: "approve" | "reject") {
@@ -22,7 +23,14 @@ export function ProposalVoting({ proposalId, currentMemberId }: Props) {
   }
 
   return (
-    <div style={{ border: "1px solid #ccc", borderRadius: 8, padding: 16, maxWidth: 480 }}>
+    <div
+      style={{
+        border: "1px solid #ccc",
+        borderRadius: 8,
+        padding: 16,
+        maxWidth: 480,
+      }}
+    >
       <h3 style={{ margin: "0 0 4px" }}>{proposal.description}</h3>
       <p style={{ margin: "0 0 12px", fontSize: 13, color: "#666" }}>
         {proposal.type === "transaction" && proposal.amount != null
@@ -53,7 +61,9 @@ export function ProposalVoting({ proposalId, currentMemberId }: Props) {
         <span style={{ color: "#dc3545" }}>✗ {tally.rejections} rejected</span>
         <span style={{ color: "#6c757d" }}>⏳ {tally.pending} pending</span>
       </div>
-      <p style={{ margin: "0 0 12px", fontSize: 13, color: "#555" }}>{quorumDescription}</p>
+      <p style={{ margin: "0 0 12px", fontSize: 13, color: "#555" }}>
+        {quorumDescription}
+      </p>
 
       {isPending && (
         <div style={{ display: "flex", gap: 8 }}>

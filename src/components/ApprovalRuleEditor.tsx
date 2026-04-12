@@ -10,7 +10,10 @@ type ApprovalRule =
   | { type: "k-of-n"; k: number; n: number }
   | { type: "named-set"; memberIds: string[] }
   | { type: "role-based"; role: string }
-  | { type: "tiered"; tiers: Array<{ maxAmount?: number; rule: ApprovalRule }> };
+  | {
+      type: "tiered";
+      tiers: Array<{ maxAmount?: number; rule: ApprovalRule }>;
+    };
 
 type Props = {
   poolId: Id<"pools">;
@@ -43,7 +46,9 @@ export function ApprovalRuleEditor({ poolId, target, onSaved }: Props) {
   const [roleName, setRoleName] = useState(
     currentRule?.type === "role-based" ? currentRule.role : "manager",
   );
-  const [tiers, setTiers] = useState<Array<{ maxAmount?: number; rule: ApprovalRule }>>(
+  const [tiers, setTiers] = useState<
+    Array<{ maxAmount?: number; rule: ApprovalRule }>
+  >(
     currentRule?.type === "tiered"
       ? currentRule.tiers
       : [
@@ -98,7 +103,9 @@ export function ApprovalRuleEditor({ poolId, target, onSaved }: Props) {
 
   function toggleMember(memberId: string) {
     setSelectedMemberIds((prev) =>
-      prev.includes(memberId) ? prev.filter((id) => id !== memberId) : [...prev, memberId],
+      prev.includes(memberId)
+        ? prev.filter((id) => id !== memberId)
+        : [...prev, memberId],
     );
   }
 
@@ -106,7 +113,10 @@ export function ApprovalRuleEditor({ poolId, target, onSaved }: Props) {
     setTiers((prev) =>
       prev.map((tier, i) =>
         i === index
-          ? { ...tier, maxAmount: value === "" ? undefined : parseFloat(value) * 1e9 }
+          ? {
+              ...tier,
+              maxAmount: value === "" ? undefined : parseFloat(value) * 1e9,
+            }
           : tier,
       ),
     );
@@ -115,9 +125,18 @@ export function ApprovalRuleEditor({ poolId, target, onSaved }: Props) {
   if (!pool || !members) return <div>Loading...</div>;
 
   return (
-    <div style={{ padding: 16, border: "1px solid #ddd", borderRadius: 8, maxWidth: 520 }}>
+    <div
+      style={{
+        padding: 16,
+        border: "1px solid #ddd",
+        borderRadius: 8,
+        maxWidth: 520,
+      }}
+    >
       <h3 style={{ margin: "0 0 12px" }}>
-        {target === "transaction" ? "Transaction Approval Rule" : "Amendment Approval Rule"}
+        {target === "transaction"
+          ? "Transaction Approval Rule"
+          : "Amendment Approval Rule"}
       </h3>
 
       {target === "amendment" && (
@@ -131,12 +150,19 @@ export function ApprovalRuleEditor({ poolId, target, onSaved }: Props) {
         <select
           value={ruleType}
           onChange={(e) => setRuleType(e.target.value as RuleType)}
-          style={{ display: "block", marginTop: 4, width: "100%", padding: "6px 8px" }}
+          style={{
+            display: "block",
+            marginTop: 4,
+            width: "100%",
+            padding: "6px 8px",
+          }}
         >
           <option value="unanimous">Unanimous — everyone must approve</option>
           <option value="k-of-n">K-of-N — any k members</option>
           <option value="named-set">Named set — specific members</option>
-          <option value="role-based">Role-based — all members with a role</option>
+          <option value="role-based">
+            Role-based — all members with a role
+          </option>
           <option value="tiered">Tiered — different rules by amount</option>
         </select>
       </label>
@@ -152,21 +178,35 @@ export function ApprovalRuleEditor({ poolId, target, onSaved }: Props) {
             max={activeMembers.length}
             value={kValue}
             onChange={(e) => setKValue(parseInt(e.target.value, 10))}
-            style={{ display: "block", marginTop: 4, width: 80, padding: "6px 8px" }}
+            style={{
+              display: "block",
+              marginTop: 4,
+              width: 80,
+              padding: "6px 8px",
+            }}
           />
         </label>
       )}
 
       {ruleType === "named-set" && (
         <div style={{ marginBottom: 12 }}>
-          <span style={{ fontSize: 13, fontWeight: 600 }}>Select required approvers</span>
+          <span style={{ fontSize: 13, fontWeight: 600 }}>
+            Select required approvers
+          </span>
           {activeMembers.length === 0 && (
-            <p style={{ fontSize: 13, color: "#888" }}>No members in this pool yet.</p>
+            <p style={{ fontSize: 13, color: "#888" }}>
+              No members in this pool yet.
+            </p>
           )}
           {activeMembers.map((m) => (
             <label
               key={m._id}
-              style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                marginTop: 6,
+              }}
             >
               <input
                 type="checkbox"
@@ -179,7 +219,15 @@ export function ApprovalRuleEditor({ poolId, target, onSaved }: Props) {
             </label>
           ))}
           {namedSetWarning && (
-            <p style={{ color: "#856404", background: "#fff3cd", padding: 8, borderRadius: 4, fontSize: 13 }}>
+            <p
+              style={{
+                color: "#856404",
+                background: "#fff3cd",
+                padding: 8,
+                borderRadius: 4,
+                fontSize: 13,
+              }}
+            >
               ⚠ {namedSetWarning}
             </p>
           )}
@@ -192,7 +240,12 @@ export function ApprovalRuleEditor({ poolId, target, onSaved }: Props) {
           <select
             value={roleName}
             onChange={(e) => setRoleName(e.target.value)}
-            style={{ display: "block", marginTop: 4, width: "100%", padding: "6px 8px" }}
+            style={{
+              display: "block",
+              marginTop: 4,
+              width: "100%",
+              padding: "6px 8px",
+            }}
           >
             <option value="manager">manager</option>
             <option value="member">member</option>
@@ -217,19 +270,25 @@ export function ApprovalRuleEditor({ poolId, target, onSaved }: Props) {
               }}
             >
               {i < tiers.length - 1 ? (
-                <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <label
+                  style={{ display: "flex", alignItems: "center", gap: 8 }}
+                >
                   <span>Max amount (SOL):</span>
                   <input
                     type="number"
                     min={0}
                     step={0.001}
-                    value={tier.maxAmount !== undefined ? tier.maxAmount / 1e9 : ""}
+                    value={
+                      tier.maxAmount !== undefined ? tier.maxAmount / 1e9 : ""
+                    }
                     onChange={(e) => updateTierAmount(i, e.target.value)}
                     style={{ width: 90, padding: "4px 6px" }}
                   />
                 </label>
               ) : (
-                <span style={{ color: "#888" }}>Catch-all (any amount above)</span>
+                <span style={{ color: "#888" }}>
+                  Catch-all (any amount above)
+                </span>
               )}
               <div style={{ marginTop: 4, color: "#555" }}>
                 Rule: <strong>{(tier.rule as ApprovalRule).type}</strong>
@@ -243,7 +302,15 @@ export function ApprovalRuleEditor({ poolId, target, onSaved }: Props) {
       )}
 
       {error && (
-        <p style={{ color: "#721c24", background: "#f8d7da", padding: 8, borderRadius: 4, fontSize: 13 }}>
+        <p
+          style={{
+            color: "#721c24",
+            background: "#f8d7da",
+            padding: 8,
+            borderRadius: 4,
+            fontSize: 13,
+          }}
+        >
           {error}
         </p>
       )}

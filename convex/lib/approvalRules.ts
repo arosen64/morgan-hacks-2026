@@ -1,11 +1,14 @@
-import { Id } from "../_generated/dataModel";
+import type { Id } from "../_generated/dataModel";
 
 export type ApprovalRule =
   | { type: "unanimous" }
   | { type: "k-of-n"; k: number; n: number }
   | { type: "named-set"; memberIds: string[] }
   | { type: "role-based"; role: string }
-  | { type: "tiered"; tiers: Array<{ maxAmount?: number; rule: ApprovalRule }> };
+  | {
+      type: "tiered";
+      tiers: Array<{ maxAmount?: number; rule: ApprovalRule }>;
+    };
 
 export type MemberSnapshot = {
   id: Id<"members">;
@@ -30,7 +33,10 @@ export function resolveRule(
   if (rule.type !== "tiered") return rule;
 
   for (const tier of rule.tiers) {
-    if (tier.maxAmount === undefined || (amountLamports ?? 0) <= tier.maxAmount) {
+    if (
+      tier.maxAmount === undefined ||
+      (amountLamports ?? 0) <= tier.maxAmount
+    ) {
       return resolveRule(tier.rule as ApprovalRule, amountLamports);
     }
   }
@@ -62,11 +68,15 @@ export function evaluateApprovalRule(
       return approvals.size >= resolved.k;
 
     case "named-set":
-      return resolved.memberIds.every((id) => approvals.has(id as Id<"members">));
+      return resolved.memberIds.every((id) =>
+        approvals.has(id as Id<"members">),
+      );
 
     case "role-based": {
       const roleMembers = activeMembers.filter((m) => m.role === resolved.role);
-      return roleMembers.length > 0 && roleMembers.every((m) => approvals.has(m.id));
+      return (
+        roleMembers.length > 0 && roleMembers.every((m) => approvals.has(m.id))
+      );
     }
 
     default:

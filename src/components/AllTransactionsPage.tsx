@@ -45,7 +45,10 @@ export function AllTransactionsPage({ poolId, currentMemberId, onBack }: Props) 
   const pending = proposals.filter((p) => p.status === "pending");
   const past = proposals.filter((p) => p.status !== "pending");
 
-  async function handleVote(proposalId: Id<"proposals">, vote: "approve" | "reject") {
+  async function handleVote(
+    proposalId: Id<"proposals">,
+    vote: "approve" | "reject",
+  ) {
     if (!currentMemberId) return;
     await castVote({ proposalId, memberId: currentMemberId, vote });
   }
@@ -76,7 +79,9 @@ export function AllTransactionsPage({ poolId, currentMemberId, onBack }: Props) 
           <h2 className="text-lg font-semibold">Pending Proposals</h2>
           <Separator />
           {pending.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No pending proposals.</p>
+            <p className="text-sm text-muted-foreground">
+              No pending proposals.
+            </p>
           ) : (
             pending.map((proposal) => (
               <PendingCard
@@ -95,7 +100,9 @@ export function AllTransactionsPage({ poolId, currentMemberId, onBack }: Props) 
           <h2 className="text-lg font-semibold">Past Transactions</h2>
           <Separator />
           {past.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No past transactions yet.</p>
+            <p className="text-sm text-muted-foreground">
+              No past transactions yet.
+            </p>
           ) : (
             past.map((proposal) => (
               <PastCard key={proposal._id} proposal={proposal} />

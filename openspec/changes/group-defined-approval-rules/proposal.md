@@ -12,11 +12,13 @@ Groups need full control over how transactions and amendments are approved. Curr
 ## Capabilities
 
 ### New Capabilities
+
 - `approval-rules`: Define, store, and evaluate flexible group approval rules (k-of-n, named-set, role-based, unanimous, tiered) inside the contract
 - `amendment-approval`: Override the default unanimous amendment-approval rule with any configured approval rule
 - `approval-voting-ui`: Frontend approve/reject flow with real-time vote tally display for all group members
 
 ### Modified Capabilities
+
 <!-- No existing specs yet -->
 
 ## Impact

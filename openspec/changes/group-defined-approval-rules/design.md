@@ -7,6 +7,7 @@ Stakeholders: group admins who configure rules, group members who vote, and the 
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Store a typed `ApprovalRule` discriminated union on each group that supports: k-of-n, named-set, role-based, unanimous, tiered (by amount)
 - Evaluate the rule server-side (Convex) when a vote is cast to determine if quorum is reached
 - Default amendment approval to unanimous; allow groups to override it
@@ -14,6 +15,7 @@ Stakeholders: group admins who configure rules, group members who vote, and the 
 - Votes transition through a `pending` state before quorum evaluation resolves them
 
 **Non-Goals:**
+
 - Delegated voting or proxy approval
 - Time-locked approval windows (future iteration)
 - Tiered rules by transaction type (amount-only)
@@ -26,6 +28,7 @@ Stakeholders: group admins who configure rules, group members who vote, and the 
 **Chosen**: `ApprovalRule` stored in Convex `groups` table as a typed union field.
 
 **Alternatives considered**:
+
 - Store rule inside the Solana program: adds on-chain space and complexity, requires program upgrade for every new rule type. Convex is the source of truth for group config; the Solana program only needs a signature count threshold passed in at execution time.
 
 **Rationale**: Convex is already the authority for group membership and settings. Keeping the rule there lets us change rule logic without a program upgrade. At execution time, the Convex action derives a resolved `requiredSignatures` value and passes it to the Solana instruction.

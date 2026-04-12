@@ -1,11 +1,17 @@
 import { mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { Id } from "./_generated/dataModel";
+import type { Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { approvalRuleValidator } from "./lib/validators";
 
 async function validateNamedSetMembers(
-  ctx: { db: { get: (id: Id<"members">) => Promise<{ isActive?: boolean; poolId: Id<"pools"> } | null> } },
+  ctx: {
+    db: {
+      get: (
+        id: Id<"members">,
+      ) => Promise<{ isActive?: boolean; poolId: Id<"pools"> } | null>;
+    };
+  },
   memberIds: string[],
   poolId: Id<"pools">,
 ) {
@@ -13,7 +19,9 @@ async function validateNamedSetMembers(
     const member = await ctx.db.get(memberId as Id<"members">);
     const isActive = member?.isActive !== false; // absent treated as active
     if (!member || !isActive || member.poolId !== poolId) {
-      throw new Error(`Member ${memberId} is not an active member of this pool`);
+      throw new Error(
+        `Member ${memberId} is not an active member of this pool`,
+      );
     }
   }
 }
@@ -63,8 +71,12 @@ export const removeMember = mutation({
     await ctx.db.patch(args.memberId, { isActive: false });
 
     // Re-evaluate pending proposals — any that can no longer reach quorum get rejected
-    await ctx.scheduler.runAfter(0, internal.approvals.reEvaluatePendingProposals, {
-      poolId: member.poolId,
-    });
+    await ctx.scheduler.runAfter(
+      0,
+      internal.approvals.reEvaluatePendingProposals,
+      {
+        poolId: member.poolId,
+      },
+    );
   },
 });

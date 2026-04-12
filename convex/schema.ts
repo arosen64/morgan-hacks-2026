@@ -19,6 +19,7 @@ export default defineSchema({
     isActive: v.optional(v.boolean()), // optional for backward compat; absent treated as active
   })
     .index("by_poolId", ["poolId"])
+    .index("by_wallet", ["wallet"])
     .index("by_poolId_and_wallet", ["poolId", "wallet"]),
 
   contracts: defineTable({
