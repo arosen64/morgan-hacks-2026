@@ -6,6 +6,7 @@ import type { Id } from "../../convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { CreatePoolFlow } from "./CreatePoolFlow";
 
 interface MainMenuProps {
   walletAddress: string;
@@ -23,13 +24,42 @@ function parsePoolId(value: string): string {
   return value.trim();
 }
 
-export function MainMenu({
-  onSelectPool,
-}: Omit<MainMenuProps, "walletAddress">) {
+export function MainMenu({ onSelectPool, walletAddress }: MainMenuProps) {
   const { disconnect } = useWallet();
-  const pools = useQuery(api.members.getPoolsByWallet, {});
+  const pools = useQuery(api.members.getPoolsByWallet, {
+    wallet: walletAddress,
+  });
   const [joinOpen, setJoinOpen] = useState(false);
   const [joinInput, setJoinInput] = useState("");
+  const [createOpen, setCreateOpen] = useState(false);
+
+  if (createOpen) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <header className="border-b border-border px-8 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="size-7 rounded-lg bg-violet-500" />
+            <span className="text-lg font-semibold tracking-tight">
+              Potlock
+            </span>
+          </div>
+          <Button variant="ghost" size="sm" onClick={() => disconnect()}>
+            Disconnect
+          </Button>
+        </header>
+        <div className="flex-1 flex items-start justify-center px-8 py-10">
+          <CreatePoolFlow
+            founderWallet={walletAddress}
+            onSuccess={(poolId) => {
+              setCreateOpen(false);
+              onSelectPool(poolId);
+            }}
+            onCancel={() => setCreateOpen(false)}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -58,7 +88,7 @@ export function MainMenu({
           <Button
             size="lg"
             className="bg-violet-600 hover:bg-violet-700 text-white"
-            disabled
+            onClick={() => setCreateOpen(true)}
           >
             + Create Pool
           </Button>

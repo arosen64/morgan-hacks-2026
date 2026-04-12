@@ -55,14 +55,11 @@ export const getMembers = query({
   },
 });
 
-// Returns all pools the authenticated caller belongs to, with their role in each
+// Returns all pools a wallet address belongs to, with their role in each
 export const getPoolsByWallet = query({
-  args: {},
-  handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return [];
-
-    const wallet = identity.tokenIdentifier;
+  args: { wallet: v.string() },
+  handler: async (ctx, args) => {
+    const wallet = args.wallet;
     const memberships = await ctx.db
       .query("members")
       .withIndex("by_wallet", (q) => q.eq("wallet", wallet))
