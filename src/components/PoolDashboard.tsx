@@ -128,7 +128,7 @@ export function PoolDashboard({
   // Pending user guard — show waiting screen instead of dashboard
   if (members !== undefined && currentMember?.status === "pending") {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center px-8">
+      <div className="min-h-screen bg-transparent flex items-center justify-center px-8">
         <Card className="w-full max-w-sm text-center">
           <CardHeader>
             <CardTitle className="text-lg">Request Pending</CardTitle>
@@ -196,9 +196,9 @@ export function PoolDashboard({
   // ── Main dashboard ─────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Top nav — identical to MainMenu */}
-      <header className="border-b border-border px-8 py-4 flex items-center justify-between">
+    <div className="min-h-screen bg-transparent">
+      {/* Top nav */}
+      <header className="border-b border-white/50 bg-white/70 backdrop-blur-md px-8 py-4 flex items-center justify-between sticky top-0 z-10">
         <div>
           <img src={logoPurple} alt="Potlock" className="h-25 w-auto" />
         </div>
@@ -220,7 +220,7 @@ export function PoolDashboard({
             {pool === undefined ? (
               <Skeleton className="h-9 w-48" />
             ) : (
-              <h1 className="text-3xl font-bold tracking-tight">
+              <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-violet-700 to-indigo-500 bg-clip-text text-transparent">
                 {pool?.name ?? "Pot"}
               </h1>
             )}
@@ -301,7 +301,7 @@ export function PoolDashboard({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-4xl font-bold tracking-tight">
+            <p className="text-4xl font-bold tracking-tight bg-gradient-to-r from-violet-700 to-indigo-500 bg-clip-text text-transparent">
               {treasuryBalanceSol === null ? (
                 "—"
               ) : (
@@ -389,7 +389,7 @@ export function PoolDashboard({
                 <Button
                   key={label}
                   variant="outline"
-                  className="h-12 text-sm font-medium"
+                  className="h-12 text-sm font-medium bg-white/60 hover:bg-violet-50/80 hover:border-violet-200 hover:-translate-y-0.5 hover:shadow-md transition-all duration-150"
                   onClick={onClick}
                 >
                   {label}

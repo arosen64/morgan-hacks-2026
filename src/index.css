@@ -130,6 +130,62 @@
   --sidebar-ring: oklch(0.708 0 0);
 }
 
+/* Animated mesh gradient background layer — sits below all app content */
+#mesh-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-color: oklch(1 0 0);
+  background-image:
+    radial-gradient(
+      ellipse 75% 65% at -8% -8%,
+      rgba(139, 92, 246, 0.22) 0%,
+      transparent 58%
+    ),
+    radial-gradient(
+      ellipse 65% 55% at 108% 108%,
+      rgba(99, 102, 241, 0.18) 0%,
+      transparent 58%
+    ),
+    radial-gradient(
+      ellipse 50% 50% at 108% -8%,
+      rgba(167, 139, 250, 0.15) 0%,
+      transparent 52%
+    ),
+    radial-gradient(
+      ellipse 40% 30% at 50% 105%,
+      rgba(124, 58, 237, 0.1) 0%,
+      transparent 60%
+    );
+  background-size:
+    100% 100%,
+    100% 100%,
+    100% 100%,
+    100% 100%;
+  animation: mesh-breathe 18s ease-in-out infinite alternate;
+}
+
+/* Stack React app above the background layer */
+#root {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+}
+
+/* Button glow effect for primary CTAs */
+.btn-glow {
+  box-shadow:
+    0 0 15px rgba(124, 58, 237, 0.4),
+    0 2px 8px rgba(124, 58, 237, 0.25);
+  transition: box-shadow 0.2s ease;
+}
+.btn-glow:hover {
+  box-shadow:
+    0 0 22px rgba(124, 58, 237, 0.55),
+    0 4px 14px rgba(124, 58, 237, 0.35);
+}
+
 .dark {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
@@ -162,4 +218,33 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+}
+
+/*
+ * Animated mesh gradient — each radial blob independently breathes by
+ * expanding/contracting its background-size layer. The `alternate` direction
+ * means the animation reverses on every cycle, giving a smooth in-out pulse
+ * without any visible seam at the loop point.
+ *
+ * Layer order matches background-image in body:
+ *   1  top-left  violet  blob
+ *   2  bot-right indigo  blob
+ *   3  top-right purple  blob
+ *   4  bottom    violet  blob
+ */
+@keyframes mesh-breathe {
+  from {
+    background-size:
+      100% 100%,
+      100% 100%,
+      100% 100%,
+      100% 100%;
+  }
+  to {
+    background-size:
+      148% 138%,
+      /* top-left violet  — expands most */ 132% 150%,
+      /* bot-right indigo — expands tall  */ 160% 145%,
+      /* top-right purple — largest pulse */ 122% 112%; /* bottom center    — subtle pulse  */
+  }
 }
