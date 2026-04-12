@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
+import { SolAmount } from "./SolAmount";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { Badge } from "@/components/ui/badge";
@@ -227,7 +228,7 @@ function PendingCard({
         <CardDescription>
           {proposal.amount != null && (
             <span className="font-semibold text-violet-600 text-sm">
-              {(proposal.amount / 1e9).toFixed(4)} SOL
+              <SolAmount lamports={proposal.amount} />
             </span>
           )}
           {proposal.amount != null && " · "}
@@ -327,7 +328,7 @@ function PendingCard({
             {proposal.amount != null && (
               <DetailRow
                 label="Amount"
-                value={`${(proposal.amount / 1e9).toFixed(4)} SOL`}
+                value={<SolAmount lamports={proposal.amount} />}
               />
             )}
             <DetailRow label="Type" value={proposal.type} />
@@ -401,7 +402,7 @@ function PastCard({ proposal }: { proposal: ProposalDetail }) {
             <span
               className={`font-semibold text-sm ${approved ? "text-emerald-600" : "text-red-500"}`}
             >
-              {(proposal.amount / 1e9).toFixed(4)} SOL
+              <SolAmount lamports={proposal.amount} />
             </span>
           )}
           {proposal.amount != null && " · "}
@@ -435,7 +436,7 @@ function PastCard({ proposal }: { proposal: ProposalDetail }) {
             {proposal.amount != null && (
               <DetailRow
                 label="Amount"
-                value={`${(proposal.amount / 1e9).toFixed(4)} SOL`}
+                value={<SolAmount lamports={proposal.amount} />}
               />
             )}
             <DetailRow label="Type" value={proposal.type} />
@@ -479,7 +480,13 @@ function PastCard({ proposal }: { proposal: ProposalDetail }) {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function DetailRow({ label, value }: { label: string; value: string }) {
+function DetailRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: React.ReactNode;
+}) {
   return (
     <div className="flex gap-1">
       <span className="font-semibold text-foreground w-28 shrink-0">

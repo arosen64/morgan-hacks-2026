@@ -17,6 +17,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
+import { SolAmount } from "./SolAmount";
+import { useSolPrice } from "@/hooks/useSolPrice";
 
 interface RequestTransactionModalProps {
   poolId: Id<"pools">;
@@ -64,8 +66,13 @@ export function RequestTransactionModal({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
+  const solPriceUsd = useSolPrice();
   const isActive = pool?.status === "active";
   const parsedAmount = parseFloat(amountSol);
+  const inputUsd =
+    solPriceUsd !== null && !isNaN(parsedAmount) && parsedAmount > 0
+      ? parsedAmount * solPriceUsd
+      : null;
   const amountLamports = isNaN(parsedAmount)
     ? 0
     : Math.round(parsedAmount * 1e9);
@@ -271,11 +278,16 @@ export function RequestTransactionModal({
                 disabled={!isActive}
                 className="focus-visible:ring-violet-500"
               />
+              {inputUsd !== null && (
+                <p className="text-xs text-muted-foreground">
+                  ≈ ${inputUsd.toFixed(2)}
+                </p>
+              )}
               {exceedsBalance && (
                 <p className="text-xs text-destructive flex items-center gap-1">
                   <AlertTriangle className="w-3 h-3" />
                   Amount exceeds the treasury balance of{" "}
-                  {treasuryBalanceSol!.toFixed(4)} SOL.
+                  <SolAmount sol={treasuryBalanceSol!} />.
                 </p>
               )}
             </div>

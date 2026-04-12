@@ -5,6 +5,8 @@ import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
+import { SolAmount } from "./SolAmount";
+import { useSolPrice } from "@/hooks/useSolPrice";
 import { getTreasuryPda } from "../lib/treasury";
 
 interface AddMoneyModalProps {
@@ -54,7 +56,13 @@ export function AddMoneyModal({
     };
   }, [connection, wallet.publicKey, fetchBalance]);
 
+  const solPriceUsd = useSolPrice();
   const parsedAmount = parseFloat(amountSol);
+  const inputUsd =
+    solPriceUsd !== null && !isNaN(parsedAmount) && parsedAmount > 0
+      ? parsedAmount * solPriceUsd
+      : null;
+
   const isValid =
     !isNaN(parsedAmount) &&
     parsedAmount > 0 &&
@@ -140,7 +148,7 @@ export function AddMoneyModal({
             <label className="text-sm font-medium">Amount (SOL)</label>
             {walletBalance !== null && (
               <span className="text-xs text-muted-foreground">
-                Balance: {walletBalance.toFixed(4)} SOL
+                Balance: <SolAmount sol={walletBalance} />
               </span>
             )}
           </div>
@@ -169,6 +177,11 @@ export function AddMoneyModal({
               </Button>
             )}
           </div>
+          {inputUsd !== null && (
+            <p className="text-xs text-muted-foreground">
+              ≈ ${inputUsd.toFixed(2)}
+            </p>
+          )}
           {walletBalance !== null && parsedAmount > walletBalance - 0.001 && (
             <p className="text-xs text-red-500">
               Insufficient balance (keeping 0.001 SOL for transaction fee)
