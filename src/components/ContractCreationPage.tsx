@@ -4,6 +4,7 @@ import { useAction, useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { canonicalizeAndHash } from "../lib/contractHash";
+import { ContractDisplay } from "./ContractDisplay";
 
 interface ContractCreationPageProps {
   poolId: Id<"pools">;
@@ -144,7 +145,7 @@ export function ContractCreationPage({
                 Edit
               </button>
             </div>
-            <ContractFieldView contract={preview} />
+            <ContractDisplay contract={preview} />
           </div>
 
           {error && <p className="text-sm text-red-600">{error}</p>}
@@ -159,33 +160,5 @@ export function ContractCreationPage({
         </div>
       )}
     </div>
-  );
-}
-
-// Field-by-field breakdown of the contract JSON
-export function ContractFieldView({
-  contract,
-}: {
-  contract: Record<string, unknown>;
-}) {
-  return (
-    <dl className="flex flex-col gap-2 text-sm">
-      {Object.entries(contract).map(([key, value]) => (
-        <div key={key} className="grid grid-cols-3 gap-2">
-          <dt className="font-medium text-gray-500 capitalize">
-            {key.replace(/_/g, " ")}
-          </dt>
-          <dd className="col-span-2 text-gray-800 break-all">
-            {typeof value === "object" ? (
-              <pre className="text-xs bg-white rounded p-1 overflow-auto max-h-24">
-                {JSON.stringify(value, null, 2)}
-              </pre>
-            ) : (
-              String(value ?? "—")
-            )}
-          </dd>
-        </div>
-      ))}
-    </dl>
   );
 }
