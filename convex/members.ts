@@ -1,21 +1,17 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
-import { ConvexError } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
 
 // 2.1 — Add a member to a pool, enforcing uniqueness of name and wallet within the pool.
-// The caller's wallet address is derived from their auth token — no wallet arg accepted.
 export const addMember = mutation({
   args: {
     poolId: v.id("pools"),
     name: v.string(),
     role: v.union(v.literal("manager"), v.literal("member")),
+    wallet: v.string(),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new ConvexError("Unauthenticated");
-
-    const wallet = identity.tokenIdentifier;
+    const wallet = args.wallet;
 
     const existing = await ctx.db
       .query("members")
