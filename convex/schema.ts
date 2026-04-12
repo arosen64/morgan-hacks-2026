@@ -63,6 +63,9 @@ export default defineSchema({
     geminiValidation: v.optional(
       v.object({ pass: v.boolean(), explanation: v.string() }),
     ),
+    // Amendment proposals store the proposed contract so it can be committed on approval
+    contractJson: v.optional(v.string()),
+    contractHash: v.optional(v.string()),
   })
     .index("by_poolId", ["poolId"])
     .index("by_poolId_and_status", ["poolId", "status"]),

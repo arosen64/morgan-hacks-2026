@@ -96,6 +96,7 @@ export function PoolDashboard({
       <ContractHistoryPage
         poolId={poolId}
         activeHash={pool?.activeContractHash}
+        currentMemberId={currentMember?._id ?? null}
         onBack={() => setView("dashboard")}
       />
     );
@@ -111,11 +112,12 @@ export function PoolDashboard({
     );
   }
 
-  if (view === "amend-contract") {
+  if (view === "amend-contract" && currentMember) {
     return (
       <AmendContractPage
         poolId={poolId}
-        onSuccess={() => setView("dashboard")}
+        currentMemberId={currentMember._id}
+        onSuccess={() => setView("contract-history")}
         onBack={() => setView("dashboard")}
       />
     );
