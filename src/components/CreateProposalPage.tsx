@@ -1,7 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAction, useMutation, useQuery } from "convex/react";
+import { useConnection } from "@solana/wallet-adapter-react";
+import { PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
+import { getTreasuryPda } from "../lib/treasury";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,6 +20,15 @@ interface CreateProposalPageProps {
 
 type ValidationResult = { pass: boolean; explanation: string };
 
+function isValidPublicKey(value: string): boolean {
+  try {
+    new PublicKey(value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function CreateProposalPage({
   poolId,
   currentMemberId,
@@ -26,36 +38,67 @@ export function CreateProposalPage({
   const validateTransaction = useAction(api.gemini.validateTransaction);
   const createProposal = useMutation(api.approvals.createProposal);
   const pool = useQuery(api.pools.getPool, { poolId });
+  const { connection } = useConnection();
 
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
   const [amountSol, setAmountSol] = useState("");
+  const [recipientWallet, setRecipientWallet] = useState("");
+  const [url, setUrl] = useState("");
 
+  const [treasuryBalanceSol, setTreasuryBalanceSol] = useState<number | null>(
+    null,
+  );
   const [validating, setValidating] = useState(false);
   const [validation, setValidation] = useState<ValidationResult | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const isActive = pool?.status === "active";
+  const parsedAmount = parseFloat(amountSol);
+  const amountLamports =
+    !isNaN(parsedAmount) && parsedAmount > 0
+      ? Math.round(parsedAmount * LAMPORTS_PER_SOL)
+      : 0;
+
+  const insufficientFunds =
+    treasuryBalanceSol !== null &&
+    amountLamports > 0 &&
+    amountLamports > treasuryBalanceSol * LAMPORTS_PER_SOL;
+
+  // Fetch treasury balance on mount
+  useEffect(() => {
+    let cancelled = false;
+    getTreasuryPda(poolId)
+      .then((pda) => connection.getBalance(pda))
+      .then((lamports) => {
+        if (!cancelled) setTreasuryBalanceSol(lamports / LAMPORTS_PER_SOL);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [connection, poolId]);
+
+  const canValidate =
+    isActive &&
+    description.trim() &&
+    category.trim() &&
+    amountSol &&
+    !isNaN(parsedAmount) &&
+    parsedAmount > 0 &&
+    recipientWallet.trim() &&
+    isValidPublicKey(recipientWallet);
 
   async function handleValidate() {
-    const amount = parseFloat(amountSol);
-    if (
-      !description.trim() ||
-      !category.trim() ||
-      isNaN(amount) ||
-      amount <= 0
-    ) {
-      setError("Please fill in all fields with valid values.");
-      return;
-    }
+    if (!canValidate) return;
     setValidating(true);
     setError(null);
     setValidation(null);
     try {
       const result = await validateTransaction({
         poolId,
-        amount,
+        amount: parsedAmount,
         description,
         category,
       });
@@ -72,24 +115,35 @@ export function CreateProposalPage({
   }
 
   async function handleSubmit() {
-    const amount = parseFloat(amountSol);
-    if (!description.trim() || isNaN(amount) || amount <= 0) return;
+    if (!validation || amountLamports <= 0) return;
+
+    // Soft balance guard — re-check before sending
+    if (insufficientFunds) {
+      setError(
+        `Insufficient treasury funds (${treasuryBalanceSol?.toFixed(4) ?? "0"} SOL available).`,
+      );
+      return;
+    }
+
     setSubmitting(true);
     setError(null);
+
     try {
       await createProposal({
         poolId,
         proposerId: currentMemberId,
         type: "transaction",
         description,
-        amount: Math.round(amount * 1e9), // convert SOL to lamports
+        amount: amountLamports,
         geminiValidation: validation ?? undefined,
+        recipientWallet,
+        url: url.trim() || undefined,
       });
+
       onSuccess();
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to submit proposal.",
-      );
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(msg || "Failed to submit proposal.");
     } finally {
       setSubmitting(false);
     }
@@ -119,6 +173,16 @@ export function CreateProposalPage({
             transactions can be proposed.
           </CardContent>
         </Card>
+      )}
+
+      {/* Treasury balance hint */}
+      {treasuryBalanceSol !== null && (
+        <p className="text-xs text-muted-foreground -mt-2">
+          Treasury balance:{" "}
+          <span className="font-medium">
+            {treasuryBalanceSol.toFixed(4)} SOL
+          </span>
+        </p>
       )}
 
       <div className="flex flex-col gap-4">
@@ -154,8 +218,51 @@ export function CreateProposalPage({
             min="0"
             step="0.001"
             value={amountSol}
-            onChange={(e) => setAmountSol(e.target.value)}
+            onChange={(e) => {
+              setAmountSol(e.target.value);
+              setValidation(null);
+            }}
             placeholder="0.5"
+            className="focus-visible:ring-violet-500"
+          />
+          {insufficientFunds && (
+            <p className="text-xs text-destructive">
+              Insufficient treasury funds (
+              {treasuryBalanceSol?.toFixed(4) ?? "0"} SOL available).
+            </p>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="recipient">Recipient wallet address</Label>
+          <Input
+            id="recipient"
+            type="text"
+            value={recipientWallet}
+            onChange={(e) => setRecipientWallet(e.target.value)}
+            placeholder="Solana public key (base58)"
+            className="focus-visible:ring-violet-500"
+          />
+          {recipientWallet && !isValidPublicKey(recipientWallet) && (
+            <p className="text-xs text-destructive">
+              Invalid Solana public key.
+            </p>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="url">
+            Link / note{" "}
+            <span className="text-muted-foreground font-normal">
+              (optional)
+            </span>
+          </Label>
+          <Input
+            id="url"
+            type="text"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="https://… or any note"
             className="focus-visible:ring-violet-500"
           />
         </div>
@@ -196,17 +303,10 @@ export function CreateProposalPage({
           </Card>
         )}
 
-        {/* Validate first, then allow submission */}
         {!validation ? (
           <Button
             onClick={handleValidate}
-            disabled={
-              validating ||
-              !description.trim() ||
-              !category.trim() ||
-              !amountSol ||
-              !isActive
-            }
+            disabled={!canValidate || validating || insufficientFunds}
             className="w-full gap-2 bg-violet-600 hover:bg-violet-700"
           >
             {validating ? (
@@ -229,7 +329,7 @@ export function CreateProposalPage({
             </Button>
             <Button
               onClick={handleSubmit}
-              disabled={submitting}
+              disabled={submitting || insufficientFunds}
               className="flex-1 bg-violet-600 hover:bg-violet-700"
             >
               {submitting ? (

@@ -2,6 +2,7 @@ import { internalMutation, mutation, query } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
+import { internal } from "./_generated/api";
 import {
   type ApprovalRule,
   type MemberSnapshot,
@@ -145,33 +146,55 @@ export const castVote = mutation({
     const votes = await loadVotesForProposal(ctx, args.proposalId);
     const members = await loadActiveMembersForPool(ctx, proposal.poolId);
 
-    if (
-      evaluateApprovalRule(rule, votes, members, proposal.amount ?? undefined)
-    ) {
-      await ctx.db.patch(args.proposalId, {
-        status: "approved",
-        resolvedAt: Date.now(),
-      });
-      // Auto-commit when an amendment proposal is unanimously approved
-      if (
-        proposal.type === "amendment" &&
-        proposal.contractJson &&
-        proposal.contractHash
-      ) {
-        await commitAmendment(
-          ctx,
-          proposal.poolId,
-          proposal.contractJson,
-          proposal.contractHash,
+    const thresholdReached = evaluateApprovalRule(
+      rule,
+      votes,
+      members,
+      proposal.amount ?? undefined,
+    );
+    const quorumLost = !canStillReachQuorum(
+      rule,
+      votes,
+      members,
+      proposal.amount ?? undefined,
+    );
+
+    if (proposal.type === "transaction") {
+      if (thresholdReached) {
+        // Hand off to action so it can check treasury balance before approving
+        await ctx.scheduler.runAfter(
+          0,
+          internal.treasury.resolveProposalIfReady,
+          { proposalId: args.proposalId },
         );
+      } else if (quorumLost) {
+        // Quorum can't be reached — reject inline (no balance check needed)
+        await ctx.db.patch(args.proposalId, {
+          status: "rejected",
+          resolvedAt: Date.now(),
+        });
       }
-    } else if (
-      !canStillReachQuorum(rule, votes, members, proposal.amount ?? undefined)
-    ) {
-      await ctx.db.patch(args.proposalId, {
-        status: "rejected",
-        resolvedAt: Date.now(),
-      });
+    } else {
+      // Amendment proposals: resolve inline (no balance check needed)
+      if (thresholdReached) {
+        await ctx.db.patch(args.proposalId, {
+          status: "approved",
+          resolvedAt: Date.now(),
+        });
+        if (proposal.contractJson && proposal.contractHash) {
+          await commitAmendment(
+            ctx,
+            proposal.poolId,
+            proposal.contractJson,
+            proposal.contractHash,
+          );
+        }
+      } else if (quorumLost) {
+        await ctx.db.patch(args.proposalId, {
+          status: "rejected",
+          resolvedAt: Date.now(),
+        });
+      }
     }
   },
 });
@@ -188,6 +211,8 @@ export const createProposal = mutation({
     ),
     contractJson: v.optional(v.string()),
     contractHash: v.optional(v.string()),
+    recipientWallet: v.optional(v.string()),
+    url: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const pool = await ctx.db.get(args.poolId);
@@ -212,6 +237,8 @@ export const createProposal = mutation({
       geminiValidation: args.geminiValidation,
       contractJson: args.contractJson,
       contractHash: args.contractHash,
+      recipientWallet: args.recipientWallet,
+      url: args.url,
     });
 
     // Auto-cast the proposer's approve vote
