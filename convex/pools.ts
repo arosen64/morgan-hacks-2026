@@ -1,14 +1,19 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { ConvexError } from "convex/values";
 
 // Creates a new pool and auto-registers the creator as manager
 export const createPool = mutation({
   args: {
     name: v.string(),
     founderName: v.string(),
-    founderWallet: v.string(),
   },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new ConvexError("Unauthenticated");
+
+    const founderWallet = identity.tokenIdentifier;
+
     const poolId = await ctx.db.insert("pools", {
       name: args.name,
       status: "pre-contract",
@@ -17,7 +22,7 @@ export const createPool = mutation({
     await ctx.db.insert("members", {
       poolId,
       name: args.founderName,
-      wallet: args.founderWallet,
+      wallet: founderWallet,
       role: "manager",
     });
 

@@ -1,6 +1,6 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { ConvexProvider, ConvexReactClient } from "convex/react";
+import { ConvexProviderWithAuth, ConvexReactClient } from "convex/react";
 import {
   ConnectionProvider,
   WalletProvider,
@@ -11,6 +11,7 @@ import { clusterApiUrl } from "@solana/web3.js";
 import "@solana/wallet-adapter-react-ui/styles.css";
 import "./index.css";
 import App from "./App.tsx";
+import { useWalletAuth } from "./hooks/useWalletAuth.ts";
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
 const endpoint = clusterApiUrl("devnet");
@@ -21,9 +22,9 @@ createRoot(document.getElementById("root")!).render(
     <ConnectionProvider endpoint={endpoint}>
       <WalletProvider wallets={wallets} autoConnect>
         <WalletModalProvider>
-          <ConvexProvider client={convex}>
+          <ConvexProviderWithAuth client={convex} useAuth={useWalletAuth}>
             <App />
-          </ConvexProvider>
+          </ConvexProviderWithAuth>
         </WalletModalProvider>
       </WalletProvider>
     </ConnectionProvider>

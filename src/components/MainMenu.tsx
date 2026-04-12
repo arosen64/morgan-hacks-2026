@@ -11,11 +11,11 @@ interface MainMenuProps {
   onSelectPool: (poolId: Id<"pools">) => void;
 }
 
-export function MainMenu({ walletAddress, onSelectPool }: MainMenuProps) {
+export function MainMenu({
+  onSelectPool,
+}: Omit<MainMenuProps, "walletAddress">) {
   const { disconnect } = useWallet();
-  const pools = useQuery(api.members.getPoolsByWallet, {
-    wallet: walletAddress,
-  });
+  const pools = useQuery(api.members.getPoolsByWallet, {});
 
   return (
     <div className="min-h-screen bg-background">
