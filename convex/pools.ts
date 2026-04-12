@@ -12,7 +12,7 @@ export const createPool = mutation({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new ConvexError("Unauthenticated");
 
-    const founderWallet = identity.tokenIdentifier;
+    const founderWallet = identity.subject;
 
     const poolId = await ctx.db.insert("pools", {
       name: args.name,

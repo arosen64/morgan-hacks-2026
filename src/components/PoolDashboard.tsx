@@ -262,6 +262,7 @@ export function PoolDashboard({
                           poolId,
                           memberId: member._id,
                           action: "accept",
+                          managerWallet: walletAddress,
                         })
                       }
                     >
@@ -276,6 +277,7 @@ export function PoolDashboard({
                           poolId,
                           memberId: member._id,
                           action: "reject",
+                          managerWallet: walletAddress,
                         })
                       }
                     >
