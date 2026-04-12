@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { ConvexError } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
 
 // 2.1 — Add a member to a pool, enforcing uniqueness of name and wallet within the pool.
@@ -36,6 +37,7 @@ export const addMember = mutation({
       name: args.name,
       wallet,
       role: args.role,
+      status: "pending",
     });
   },
 });
@@ -63,12 +65,69 @@ export const getPoolsByWallet = query({
 
     const result: { pool: Doc<"pools">; role: "manager" | "member" }[] = [];
     for (const membership of memberships) {
+      // Skip pending memberships — pending users don't see the pool in their list
+      if (membership.status === "pending") continue;
       const pool = await ctx.db.get(membership.poolId);
       if (pool) {
         result.push({ pool, role: membership.role });
       }
     }
     return result;
+  },
+});
+
+// Returns only pending members for a given pool
+export const getPendingMembers = query({
+  args: { poolId: v.id("pools") },
+  handler: async (ctx, args) => {
+    const members = await ctx.db
+      .query("members")
+      .withIndex("by_poolId", (q) => q.eq("poolId", args.poolId))
+      .collect();
+    return members.filter((m) => m.status === "pending");
+  },
+});
+
+// Accept or reject a pending join request. Only pool managers may call this.
+export const resolveJoinRequest = mutation({
+  args: {
+    poolId: v.id("pools"),
+    memberId: v.id("members"),
+    action: v.union(v.literal("accept"), v.literal("reject")),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new ConvexError("Unauthenticated");
+
+    const callerWallet = identity.tokenIdentifier;
+
+    // Verify caller is a manager in this pool
+    const allMembers = await ctx.db
+      .query("members")
+      .withIndex("by_poolId", (q) => q.eq("poolId", args.poolId))
+      .collect();
+
+    const caller = allMembers.find((m) => m.wallet === callerWallet);
+    if (!caller || caller.role !== "manager") {
+      throw new ConvexError(
+        "Only pool managers can accept or reject join requests.",
+      );
+    }
+
+    const target = await ctx.db.get(args.memberId);
+    if (
+      !target ||
+      target.poolId !== args.poolId ||
+      target.status !== "pending"
+    ) {
+      throw new ConvexError("Pending member record not found.");
+    }
+
+    if (args.action === "accept") {
+      await ctx.db.patch(args.memberId, { status: "active" });
+    } else {
+      await ctx.db.delete(args.memberId);
+    }
   },
 });
 

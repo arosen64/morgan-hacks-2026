@@ -17,6 +17,7 @@ export default defineSchema({
     wallet: v.string(),
     role: v.union(v.literal("manager"), v.literal("member")),
     isActive: v.optional(v.boolean()), // optional for backward compat; absent treated as active
+    status: v.optional(v.union(v.literal("pending"), v.literal("active"))), // absent treated as active
     contributedLamports: v.optional(v.number()),
   })
     .index("by_poolId", ["poolId"])
