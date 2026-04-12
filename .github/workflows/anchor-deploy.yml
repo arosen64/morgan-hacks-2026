@@ -1,15 +1,10 @@
 name: Anchor Deploy
 
-# Rebuilds and redeploys the Solana program to devnet whenever
-# Anchor source or config changes land on main.
+# Rebuilds and redeploys the Solana program to devnet.
+# Triggered manually from the Actions tab — never runs automatically
+# to avoid accidental redeployments changing the program address.
 on:
-  push:
-    branches: [main]
-    paths:
-      - "programs/**"
-      - "Anchor.toml"
-      - "Cargo.toml"
-      - "Cargo.lock"
+  workflow_dispatch:
 
 jobs:
   anchor-deploy:
