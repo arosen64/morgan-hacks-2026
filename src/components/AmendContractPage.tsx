@@ -244,7 +244,7 @@ export function AmendContractPage({
 
       {!activeContract && contractVersions !== undefined && (
         <p className="text-sm text-amber-600">
-          No active contract found for this pool.
+          No active contract found for this pot.
         </p>
       )}
     </div>

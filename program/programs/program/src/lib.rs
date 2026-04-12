@@ -12,7 +12,7 @@ use instructions::{
     propose_transaction::*,
 };
 
-declare_id!("F8PqxjxJbW3bMSkZ5fWLcvL3dZ6N34rrmNGqC33xt4Qw");
+declare_id!("BFTWuWFcjmLi6t1sHZpC15eE2WzZKFHqdFsJnwtGdAaM");
 
 #[program]
 pub mod group_treasury {

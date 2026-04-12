@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useWallet } from "../hooks/useWallet";
+import { SolAmount } from "./SolAmount";
 
 interface Props {
   children: React.ReactNode;
@@ -27,7 +28,10 @@ export function WalletGate({ children }: Props) {
           <span style={styles.walletInfo}>
             {truncated}
             {balance !== null && (
-              <span style={styles.balance}> · {balance.toFixed(4)} SOL</span>
+              <span style={styles.balance}>
+                {" · "}
+                <SolAmount sol={balance} />
+              </span>
             )}
           </span>
           <button style={styles.logoutBtn} onClick={logout}>

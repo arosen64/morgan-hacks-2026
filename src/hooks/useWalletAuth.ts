@@ -2,6 +2,44 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 
 const CONVEX_SITE_URL = import.meta.env.VITE_CONVEX_SITE_URL as string;
+const TOKEN_CACHE_KEY = "wallet_auth_v1";
+// JWT TTL is 7 days; we expire the cache 10 minutes early to avoid edge cases.
+const TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000 - 10 * 60 * 1000;
+
+interface CachedAuth {
+  token: string;
+  wallet: string;
+  expiresAt: number;
+}
+
+function loadCached(wallet: string): string | null {
+  try {
+    const raw = localStorage.getItem(TOKEN_CACHE_KEY);
+    if (!raw) return null;
+    const cached = JSON.parse(raw) as CachedAuth;
+    if (cached.wallet !== wallet) return null;
+    if (cached.expiresAt < Date.now()) {
+      localStorage.removeItem(TOKEN_CACHE_KEY);
+      return null;
+    }
+    return cached.token;
+  } catch {
+    return null;
+  }
+}
+
+function saveCache(token: string, wallet: string) {
+  const entry: CachedAuth = {
+    token,
+    wallet,
+    expiresAt: Date.now() + TOKEN_TTL_MS,
+  };
+  localStorage.setItem(TOKEN_CACHE_KEY, JSON.stringify(entry));
+}
+
+function clearCache() {
+  localStorage.removeItem(TOKEN_CACHE_KEY);
+}
 
 type AuthState =
   | { status: "loading" }
@@ -21,9 +59,18 @@ export function useWalletAuth() {
   const doSignIn = useCallback(async () => {
     if (!publicKey || !signMessage) return;
     if (signingRef.current) return; // prevent concurrent sign-in attempts
-    signingRef.current = true;
 
     const walletAddress = publicKey.toBase58();
+
+    // Restore from localStorage cache — avoids Phantom prompt on every reload
+    const cached = loadCached(walletAddress);
+    if (cached) {
+      tokenWalletRef.current = walletAddress;
+      setAuthState({ status: "authenticated", token: cached });
+      return;
+    }
+
+    signingRef.current = true;
     setAuthState({ status: "signing" });
 
     try {
@@ -59,6 +106,7 @@ export function useWalletAuth() {
       }
       const { token } = await verifyRes.json();
 
+      saveCache(token, walletAddress);
       tokenWalletRef.current = walletAddress;
       setAuthState({ status: "authenticated", token });
     } catch (err: unknown) {
@@ -70,10 +118,11 @@ export function useWalletAuth() {
     }
   }, [publicKey, signMessage]);
 
-  // Trigger sign-in when wallet connects
+  // Trigger sign-in when wallet connects or when auth is lost
   useEffect(() => {
     if (!connected || !publicKey) {
-      // Wallet disconnected — clear session
+      // Wallet disconnected — clear session but keep localStorage cache
+      // (user may just be reloading; they'll be re-authenticated from cache)
       tokenWalletRef.current = null;
       signingRef.current = false;
       setAuthState({ status: "unauthenticated" });
@@ -82,8 +131,9 @@ export function useWalletAuth() {
 
     const currentWallet = publicKey.toBase58();
 
-    // If the wallet changed, clear any existing token and re-authenticate
+    // If the wallet changed, clear token + cache for the old wallet
     if (tokenWalletRef.current && tokenWalletRef.current !== currentWallet) {
+      clearCache();
       tokenWalletRef.current = null;
       signingRef.current = false;
     }
@@ -94,14 +144,11 @@ export function useWalletAuth() {
     ) {
       doSignIn();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [connected, publicKey]);
+    // Include authState.status so a forced token expiry (forceRefreshToken) that
+    // resets state to "unauthenticated" automatically re-triggers sign-in.
+  }, [connected, publicKey, authState.status, doSignIn]);
 
   // Expose shape expected by ConvexProviderWithAuth.
-  // When Convex calls with forceRefreshToken: true it means the current token
-  // was rejected (expired). We can't silently refresh (requires Phantom),
-  // so we clear auth state — the UI gate in App.tsx will show SignInScreen
-  // and the useEffect below will re-trigger doSignIn cleanly.
   const fetchAccessToken = useCallback(
     async ({
       forceRefreshToken,
@@ -110,10 +157,10 @@ export function useWalletAuth() {
     }): Promise<string | null> => {
       if (authState.status !== "authenticated") return null;
       if (forceRefreshToken) {
-        // Token expired. If a Phantom signing is already in progress (e.g. a Solana
-        // transaction), don't interrupt it — just return null and let Convex retry later.
+        // Token rejected by Convex. Clear cache and re-authenticate.
         if (signingRef.current) return null;
-        // Otherwise drop to unauthenticated so the app shows SignInScreen.
+        clearCache();
+        signingRef.current = false;
         setAuthState({ status: "unauthenticated" });
         return null;
       }

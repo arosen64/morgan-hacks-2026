@@ -4,6 +4,7 @@ import { useWallet, useConnection } from "@solana/wallet-adapter-react";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
+import { SolAmount } from "./SolAmount";
 import { ContractCreationPage } from "./ContractCreationPage";
 import { ContractHistoryPage } from "./ContractHistoryPage";
 import { AllTransactionsPage } from "./AllTransactionsPage";
@@ -133,14 +134,14 @@ export function PoolDashboard({
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
             <p className="text-sm text-muted-foreground">
-              Your request to join <strong>{pool?.name ?? "this pool"}</strong>{" "}
+              Your request to join <strong>{pool?.name ?? "this pot"}</strong>{" "}
               is awaiting manager approval.
             </p>
             <button
               onClick={onBack}
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
-              ← Back to pools
+              ← Back to pots
             </button>
           </CardContent>
         </Card>
@@ -220,7 +221,7 @@ export function PoolDashboard({
               <Skeleton className="h-9 w-48" />
             ) : (
               <h1 className="text-3xl font-bold tracking-tight">
-                {pool?.name ?? "Pool"}
+                {pool?.name ?? "Pot"}
               </h1>
             )}
             <Badge
@@ -301,9 +302,11 @@ export function PoolDashboard({
           </CardHeader>
           <CardContent>
             <p className="text-4xl font-bold tracking-tight">
-              {treasuryBalanceSol === null
-                ? "—"
-                : `${treasuryBalanceSol.toFixed(4)} SOL`}
+              {treasuryBalanceSol === null ? (
+                "—"
+              ) : (
+                <SolAmount sol={treasuryBalanceSol} />
+              )}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
               Live on-chain balance (devnet)
@@ -351,9 +354,7 @@ export function PoolDashboard({
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold">
-                          {contributed
-                            ? `${(contributed / 1e9).toFixed(4)} SOL`
-                            : "0 SOL"}
+                          <SolAmount lamports={contributed ?? 0} />
                         </span>
                         <Badge
                           variant={

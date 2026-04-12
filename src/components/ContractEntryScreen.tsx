@@ -82,7 +82,7 @@ export function ContractEntryScreen({ poolId }: ContractEntryScreenProps) {
           </h1>
         </div>
         <p className="text-muted-foreground text-sm">
-          No contract exists for this pool yet. Choose how you'd like to get
+          No contract exists for this pot yet. Choose how you'd like to get
           started.
         </p>
       </div>

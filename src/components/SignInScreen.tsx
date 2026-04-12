@@ -25,7 +25,7 @@ export function SignInScreen({
           <img src={heroImage} alt="Potlock" className="w-64 drop-shadow-2xl" />
           <blockquote className="text-center">
             <p className="text-xl font-medium leading-snug">
-              "The smarter way to invest
+              "The smarter way to manage money
               <br />
               with people you trust."
             </p>
@@ -51,7 +51,7 @@ export function SignInScreen({
             <p className="text-sm text-muted-foreground">
               {signingState === "signing"
                 ? "Check your Phantom wallet to approve the sign-in request."
-                : "Connect your Phantom wallet to access your investment pools."}
+                : "Connect your Phantom wallet to access your pots."}
             </p>
           </div>
 

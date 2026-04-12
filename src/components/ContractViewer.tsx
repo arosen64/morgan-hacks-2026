@@ -58,7 +58,7 @@ function VersionView({
               {isActive ? "Active" : `v${doc.version}`}
             </Badge>
           </div>
-          <p className="text-muted-foreground text-sm">Pool: {poolId}</p>
+          <p className="text-muted-foreground text-sm">Pot: {poolId}</p>
         </div>
         {isActive && (
           <Button
@@ -172,7 +172,7 @@ export function ContractViewer({ poolId }: { poolId: string }) {
   if (activeVersion === null)
     return (
       <p className="text-muted-foreground p-6">
-        No contract found for this pool.
+        No contract found for this pot.
       </p>
     );
 

@@ -1,4 +1,5 @@
 import { useMutation, useQuery } from "convex/react";
+import { SolAmount } from "./SolAmount";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 
@@ -33,9 +34,12 @@ export function ProposalVoting({ proposalId, currentMemberId }: Props) {
     >
       <h3 style={{ margin: "0 0 4px" }}>{proposal.description}</h3>
       <p style={{ margin: "0 0 12px", fontSize: 13, color: "#666" }}>
-        {proposal.type === "transaction" && proposal.amount != null
-          ? `${(proposal.amount / 1e9).toFixed(4)} SOL · `
-          : ""}
+        {proposal.type === "transaction" && proposal.amount != null && (
+          <>
+            <SolAmount lamports={proposal.amount} />
+            {" · "}
+          </>
+        )}
         {proposal.type}
       </p>
 
