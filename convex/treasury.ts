@@ -75,15 +75,14 @@ export const resolveProposalIfReady = internalAction({
     }
 
     // Threshold reached — check treasury balance before approving
-    const programId = new PublicKey(
-      process.env.VITE_PROGRAM_ID ?? process.env.PROGRAM_ID ?? "",
-    );
-
     let approved = true;
     let rejectionReason: string | undefined;
 
     if (proposal.amount && proposal.amount > 0) {
       try {
+        const programId = new PublicKey(
+          process.env.VITE_PROGRAM_ID ?? process.env.PROGRAM_ID ?? "",
+        );
         const connection = getRpcConnection();
         const pda = getTreasuryPda(proposal.poolId, programId);
         const balanceLamports = await connection.getBalance(pda);
@@ -93,7 +92,7 @@ export const resolveProposalIfReady = internalAction({
           rejectionReason = "insufficient_funds";
         }
       } catch {
-        // RPC error — approve optimistically rather than blocking
+        // RPC error or missing PROGRAM_ID — approve optimistically rather than blocking
       }
     }
 

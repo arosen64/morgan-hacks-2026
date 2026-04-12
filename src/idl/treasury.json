@@ -1,5 +1,5 @@
 {
-  "address": "GkkgQsMLxjzZ6zxsbSbReyt4pNM8fUBYf98E3KpWvaer",
+  "address": "5hMtfmxu4ryajWx9CwiP6jQaB6tAtKhEnmBdrTPLFSo5",
   "metadata": {
     "name": "treasury",
     "version": "0.1.0",
@@ -413,7 +413,7 @@
     {
       "code": 6001,
       "name": "InvalidThreshold",
-      "msg": "Invalid threshold: must be ≥ 1 and ≤ member count"
+      "msg": "Invalid threshold: must be \u2265 1 and \u2264 member count"
     },
     {
       "code": 6002,

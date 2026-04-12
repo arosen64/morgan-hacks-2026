@@ -53,6 +53,7 @@ export function RequestTransactionModal({
   const { connection } = useConnection();
   const validateTransaction = useAction(api.gemini.validateTransaction);
   const createProposal = useMutation(api.approvals.createProposal);
+  const doRecordExecution = useMutation(api.approvals.recordExecution);
   const pool = useQuery(api.pools.getPool, { poolId });
 
   const [description, setDescription] = useState("");
@@ -190,15 +191,46 @@ export function RequestTransactionModal({
         })
         .rpc();
 
-      // Record in Convex
-      await createProposal({
+      // Cast the proposer's approve vote on-chain immediately after creation.
+      // This lets the Anchor program auto-execute when the proposer is the only
+      // member needed (e.g. single-member pool with unanimous threshold).
+      let txSignature: string | undefined;
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        txSignature = await (program.methods as any)
+          .voteOnProposal(true)
+          .accounts({
+            treasury: treasuryPda,
+            proposal: proposalPda,
+            voter: anchorWallet.publicKey,
+          })
+          .remainingAccounts([
+            { pubkey: recipientPubkey, isWritable: true, isSigner: false },
+          ])
+          .rpc();
+      } catch {
+        // Non-fatal: on-chain vote failed (e.g. threshold > 1, or treasury not
+        // fully initialized). Other members' votes will trigger execution later.
+      }
+
+      // Record in Convex — include recipientWallet and onChainProposalId so
+      // voters can later derive the correct proposal PDA and execute on-chain.
+      const convexProposalId = await createProposal({
         poolId,
         proposerId: currentMemberId,
         type: "transaction",
         description,
         amount: amountLamports,
         geminiValidation: validation ?? undefined,
+        recipientWallet,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        onChainProposalId: Number((proposalCount as any).toString()),
       });
+
+      // If the on-chain vote executed the transfer, record the signature now.
+      if (txSignature && convexProposalId) {
+        await doRecordExecution({ proposalId: convexProposalId, txSignature });
+      }
 
       setSuccess(true);
       setTimeout(() => {

@@ -58,6 +58,7 @@ export default defineSchema({
       v.literal("pending"),
       v.literal("approved"),
       v.literal("rejected"),
+      v.literal("executed"),
     ),
     resolvedAt: v.optional(v.number()), // ms timestamp when approved/rejected
     geminiValidation: v.optional(
@@ -70,6 +71,11 @@ export default defineSchema({
     recipientWallet: v.optional(v.string()),
     url: v.optional(v.string()),
     rejectionReason: v.optional(v.string()),
+    // On-chain linkage — proposal_count at the time of Anchor create_proposal
+    onChainProposalId: v.optional(v.number()),
+    // Execution record — set after the SOL transfer is confirmed on-chain
+    txSignature: v.optional(v.string()),
+    executedAt: v.optional(v.number()),
   })
     .index("by_poolId", ["poolId"])
     .index("by_poolId_and_status", ["poolId", "status"]),

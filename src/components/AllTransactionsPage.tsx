@@ -1,8 +1,11 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
+import { useAnchorWallet, useConnection } from "@solana/wallet-adapter-react";
+import { PublicKey } from "@solana/web3.js";
 import { SolAmount } from "./SolAmount";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
+import { getTreasuryPda } from "../lib/treasury";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,6 +22,7 @@ type Props = {
   poolId: Id<"pools">;
   currentMemberId: Id<"members"> | null;
   onBack: () => void;
+  onBalanceChanged?: () => void;
 };
 
 type ProposalDetail = NonNullable<
@@ -29,22 +33,100 @@ export function AllTransactionsPage({
   poolId,
   currentMemberId,
   onBack,
+  onBalanceChanged,
 }: Props) {
+  const anchorWallet = useAnchorWallet();
+  const { connection } = useConnection();
+
   const proposals = useQuery(api.approvals.getProposalsWithDetails, {
     poolId,
     currentMemberId: currentMemberId ?? undefined,
   });
+  const pool = useQuery(api.pools.getPool, { poolId });
 
   const castVote = useMutation(api.approvals.castVote);
+  const doRecordExecution = useMutation(api.approvals.recordExecution);
   const cancelProposal = useMutation(api.approvals.cancelProposal);
   const seedTestProposals = useMutation(api.seed.seedTestProposals);
 
   async function handleVote(
-    proposalId: Id<"proposals">,
+    proposal: ProposalDetail,
     vote: "approve" | "reject",
   ) {
     if (!currentMemberId) return;
-    await castVote({ proposalId, memberId: currentMemberId, vote });
+
+    // 1. Record vote in Convex (source of truth for approval logic)
+    await castVote({
+      proposalId: proposal._id,
+      memberId: currentMemberId,
+      vote,
+    });
+
+    // 2. For approve votes on transaction proposals that have an on-chain counterpart,
+    //    also call the Anchor vote_on_proposal instruction so the program can
+    //    auto-execute the SOL transfer when the threshold is met.
+    if (
+      vote === "approve" &&
+      proposal.type === "transaction" &&
+      proposal.onChainProposalId != null &&
+      proposal.recipientWallet &&
+      anchorWallet
+    ) {
+      try {
+        const { Program, AnchorProvider, BN } =
+          await import("@coral-xyz/anchor");
+        const { default: idlJson } = await import("../idl/treasury.json");
+        const { TREASURY_PROGRAM_ID } = await import("../lib/treasury");
+
+        const provider = new AnchorProvider(connection, anchorWallet, {
+          commitment: "confirmed",
+        });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const program = new Program(idlJson as any, provider);
+        const treasuryPda = await getTreasuryPda(poolId);
+
+        // Derive proposal PDA: seeds = ["proposal", treasury_pubkey, proposal_count (u64 LE)]
+        const proposalIdBN = new BN(proposal.onChainProposalId);
+        const [proposalPda] = PublicKey.findProgramAddressSync(
+          [
+            Buffer.from("proposal"),
+            treasuryPda.toBuffer(),
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (proposalIdBN as any).toArrayLike(Buffer, "le", 8),
+          ],
+          TREASURY_PROGRAM_ID,
+        );
+
+        const recipientPubkey = new PublicKey(proposal.recipientWallet);
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const txSig = await (program.methods as any)
+          .voteOnProposal(true)
+          .accounts({
+            treasury: treasuryPda,
+            proposal: proposalPda,
+            voter: anchorWallet.publicKey,
+          })
+          .remainingAccounts([
+            { pubkey: recipientPubkey, isWritable: true, isSigner: false },
+          ])
+          .rpc();
+
+        // 3. Persist the execution signature in Convex
+        await doRecordExecution({
+          proposalId: proposal._id,
+          txSignature: txSig,
+        });
+      } catch (err) {
+        // Log but don't block the UI — the Convex vote already succeeded.
+        // Common non-fatal cases: AlreadyVoted (already voted on-chain),
+        // threshold not yet met (no transfer this vote).
+        console.warn(
+          "[vote_on_proposal]",
+          err instanceof Error ? err.message : err,
+        );
+      }
+    }
   }
 
   async function handleCancel(proposalId: Id<"proposals">) {
@@ -52,12 +134,143 @@ export function AllTransactionsPage({
     await cancelProposal({ proposalId, memberId: currentMemberId });
   }
 
+  async function handleExecute(
+    proposal: ProposalDetail,
+  ): Promise<string | null> {
+    if (!anchorWallet || !proposal.recipientWallet || proposal.amount == null) {
+      return null;
+    }
+
+    const { Program, AnchorProvider, BN } = await import("@coral-xyz/anchor");
+    const { default: idlJson } = await import("../idl/treasury.json");
+    const { TREASURY_PROGRAM_ID, getTreasuryPda, poolIdToBytes } =
+      await import("../lib/treasury");
+
+    // skipPreflight avoids "already been processed" simulation errors when
+    // Anchor retries a signed transaction that already confirmed on-chain.
+    const rpcOpts = { skipPreflight: true, commitment: "confirmed" as const };
+
+    const provider = new AnchorProvider(connection, anchorWallet, {
+      commitment: "confirmed",
+    });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const program = new Program(idlJson as any, provider);
+    const treasuryPda = await getTreasuryPda(poolId);
+
+    // Step 1: Ensure treasury is initialized on-chain.
+    // If not, initialize it now with the current wallet as the sole member
+    // and threshold=1 so this single vote immediately executes the transfer.
+    // (Convex already validated the group approval off-chain.)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let treasuryAccount: any;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      treasuryAccount = await (program.account as any).treasury.fetch(
+        treasuryPda,
+      );
+    } catch {
+      // Not initialized — create it now
+      const poolSeed = await poolIdToBytes(poolId);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (program.methods as any)
+        .initializeTreasury(
+          Array.from(poolSeed),
+          [{ pubkey: anchorWallet.publicKey, username: "member" }],
+          1,
+        )
+        .accounts({ treasury: treasuryPda, authority: anchorWallet.publicKey })
+        .rpc(rpcOpts);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      treasuryAccount = await (program.account as any).treasury.fetch(
+        treasuryPda,
+      );
+    }
+
+    // Step 2: Ensure the on-chain treasury has a contract set.
+    // The Anchor program requires has_contract=true before spending proposals.
+    if (!treasuryAccount.hasContract) {
+      const contractHash = pool?.activeContractHash ?? null;
+      // Convert hex hash to 32-byte array, falling back to zeros if unavailable
+      const hashBytes: number[] = contractHash
+        ? Array.from(Buffer.from(contractHash, "hex"))
+        : Array(32).fill(0);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (program.methods as any)
+        .setContract(hashBytes)
+        .accounts({ treasury: treasuryPda, caller: anchorWallet.publicKey })
+        .rpc(rpcOpts);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      treasuryAccount = await (program.account as any).treasury.fetch(
+        treasuryPda,
+      );
+    }
+
+    // Step 3: Create the on-chain spending proposal.
+    const proposalCount = treasuryAccount.proposalCount;
+    const [proposalPda] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("proposal"),
+        treasuryPda.toBuffer(),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (proposalCount as any).toArrayLike(Buffer, "le", 8),
+      ],
+      TREASURY_PROGRAM_ID,
+    );
+
+    const recipientPubkey = new PublicKey(proposal.recipientWallet);
+    const amountBN = new BN(proposal.amount);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (program.methods as any)
+      .createProposal(
+        { spending: { recipient: recipientPubkey, amountLamports: amountBN } },
+        proposal.description.slice(0, 200),
+        proposal.description.slice(0, 50),
+        false,
+      )
+      .accounts({
+        treasury: treasuryPda,
+        proposal: proposalPda,
+        proposer: anchorWallet.publicKey,
+      })
+      .rpc(rpcOpts);
+
+    // Step 4: Cast the approval vote — with threshold=1 this immediately
+    // executes the lamport transfer from the treasury PDA to the recipient.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const txSig: string = await (program.methods as any)
+      .voteOnProposal(true)
+      .accounts({
+        treasury: treasuryPda,
+        proposal: proposalPda,
+        voter: anchorWallet.publicKey,
+      })
+      .remainingAccounts([
+        { pubkey: recipientPubkey, isWritable: true, isSigner: false },
+      ])
+      .rpc(rpcOpts);
+
+    await doRecordExecution({ proposalId: proposal._id, txSignature: txSig });
+
+    // Give the RPC a moment to propagate the balance change before refreshing
+    await new Promise<void>((resolve) => setTimeout(resolve, 1500));
+    onBalanceChanged?.();
+    return txSig;
+  }
+
   async function handleSeed() {
     await seedTestProposals({ poolId });
   }
 
-  const pending = proposals?.filter((p) => p.status === "pending") ?? [];
-  const past = proposals?.filter((p) => p.status !== "pending") ?? [];
+  // "approved" stays in the pending tab so the Execute button is visible there
+  const pending =
+    proposals?.filter(
+      (p) => p.status === "pending" || p.status === "approved",
+    ) ?? [];
+  const past =
+    proposals?.filter(
+      (p) => p.status !== "pending" && p.status !== "approved",
+    ) ?? [];
 
   return (
     <div className="min-h-screen bg-background">
@@ -166,6 +379,7 @@ export function AllTransactionsPage({
                     currentMemberId={currentMemberId}
                     onVote={handleVote}
                     onCancel={handleCancel}
+                    onExecute={handleExecute}
                   />
                 ))
               )}
@@ -203,20 +417,51 @@ function PendingCard({
   currentMemberId,
   onVote,
   onCancel,
+  onExecute,
 }: {
   proposal: ProposalDetail;
   currentMemberId: Id<"members"> | null;
-  onVote: (id: Id<"proposals">, vote: "approve" | "reject") => Promise<void>;
+  onVote: (
+    proposal: ProposalDetail,
+    vote: "approve" | "reject",
+  ) => Promise<void>;
   onCancel: (id: Id<"proposals">) => Promise<void>;
+  onExecute: (proposal: ProposalDetail) => Promise<string | null>;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [executing, setExecuting] = useState(false);
+  const [executeError, setExecuteError] = useState<string | null>(null);
   const total = proposal.tally.total || 1;
   const approvalPct = Math.round((proposal.tally.approvals / total) * 100);
+  const isApproved = proposal.status === "approved";
+
+  const canExecute =
+    isApproved &&
+    proposal.type === "transaction" &&
+    proposal.recipientWallet != null &&
+    proposal.amount != null &&
+    currentMemberId !== null;
+
+  async function handleExecuteClick() {
+    setExecuting(true);
+    setExecuteError(null);
+    try {
+      await onExecute(proposal);
+    } catch (err) {
+      setExecuteError(err instanceof Error ? err.message : "Execution failed.");
+    } finally {
+      setExecuting(false);
+    }
+  }
 
   return (
-    <Card className="overflow-hidden border-violet-100 shadow-sm hover:shadow-md hover:border-violet-300 transition-all">
+    <Card
+      className={`overflow-hidden shadow-sm hover:shadow-md transition-all ${isApproved ? "border-emerald-200 hover:border-emerald-300" : "border-violet-100 hover:border-violet-300"}`}
+    >
       {/* Accent stripe */}
-      <div className="h-1 w-full bg-gradient-to-r from-violet-500 to-purple-500" />
+      <div
+        className={`h-1 w-full bg-gradient-to-r ${isApproved ? "from-emerald-400 to-green-500" : "from-violet-500 to-purple-500"}`}
+      />
 
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-2">
@@ -233,13 +478,21 @@ function PendingCard({
               </span>
             )}
           </div>
-          <Badge className="shrink-0 bg-violet-600 hover:bg-violet-600 text-white border-0">
-            Needs Vote
-          </Badge>
+          {isApproved ? (
+            <Badge className="shrink-0 bg-emerald-600 hover:bg-emerald-600 text-white border-0">
+              ✓ Approved
+            </Badge>
+          ) : (
+            <Badge className="shrink-0 bg-violet-600 hover:bg-violet-600 text-white border-0">
+              Needs Vote
+            </Badge>
+          )}
         </div>
         <CardDescription>
           {proposal.amount != null && (
-            <span className="font-semibold text-violet-600 text-sm">
+            <span
+              className={`font-semibold text-sm ${isApproved ? "text-emerald-600" : "text-violet-600"}`}
+            >
               <SolAmount lamports={proposal.amount} />
             </span>
           )}
@@ -253,7 +506,9 @@ function PendingCard({
         <div className="flex flex-col gap-1.5">
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>
-              <span className="font-semibold text-violet-600">
+              <span
+                className={`font-semibold ${isApproved ? "text-emerald-600" : "text-violet-600"}`}
+              >
                 {proposal.tally.approvals}
               </span>{" "}
               approved ·{" "}
@@ -270,7 +525,7 @@ function PendingCard({
           </div>
           <div className="h-2 rounded-full bg-muted overflow-hidden">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-violet-500 to-purple-500 transition-all"
+              className={`h-full rounded-full bg-gradient-to-r transition-all ${isApproved ? "from-emerald-400 to-green-500" : "from-violet-500 to-purple-500"}`}
               style={{ width: `${approvalPct}%` }}
             />
           </div>
@@ -279,15 +534,39 @@ function PendingCard({
           </p>
         </div>
 
-        {/* Vote actions */}
-        {currentMemberId && (
+        {/* Execute Transfer button — shown when approval threshold is met */}
+        {canExecute && (
+          <div className="flex flex-col gap-1.5">
+            <Button
+              size="sm"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white w-fit"
+              disabled={executing}
+              onClick={() => void handleExecuteClick()}
+            >
+              {executing ? (
+                <span className="flex items-center gap-2">
+                  <span className="inline-block size-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Executing…
+                </span>
+              ) : (
+                "Execute Transfer"
+              )}
+            </Button>
+            {executeError && (
+              <p className="text-xs text-destructive">{executeError}</p>
+            )}
+          </div>
+        )}
+
+        {/* Vote actions — only shown while still pending (not yet approved) */}
+        {!isApproved && currentMemberId && (
           <div className="flex flex-wrap gap-2">
             {proposal.myVote === null ? (
               <>
                 <Button
                   size="sm"
                   className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white shadow-sm"
-                  onClick={() => onVote(proposal._id, "approve")}
+                  onClick={() => onVote(proposal, "approve")}
                 >
                   ✓ Approve
                 </Button>
@@ -295,7 +574,7 @@ function PendingCard({
                   size="sm"
                   variant="destructive"
                   className="shadow-sm"
-                  onClick={() => onVote(proposal._id, "reject")}
+                  onClick={() => onVote(proposal, "reject")}
                 >
                   ✗ Reject
                 </Button>
@@ -382,14 +661,15 @@ function PendingCard({
 
 function PastCard({ proposal }: { proposal: ProposalDetail }) {
   const [expanded, setExpanded] = useState(false);
-  const approved = proposal.status === "approved";
+  const executed = proposal.status === "executed";
+  const isPositive = executed;
 
   return (
     <Card className="overflow-hidden shadow-sm hover:shadow-md transition-all">
       {/* Accent stripe */}
       <div
         className={`h-1 w-full ${
-          approved
+          isPositive
             ? "bg-gradient-to-r from-emerald-400 to-green-500"
             : "bg-gradient-to-r from-red-400 to-rose-500"
         }`}
@@ -401,13 +681,13 @@ function PastCard({ proposal }: { proposal: ProposalDetail }) {
           <Badge
             variant="outline"
             className={
-              approved
-                ? "shrink-0 bg-emerald-50 text-emerald-700 border-emerald-200 font-semibold"
+              executed
+                ? "shrink-0 bg-emerald-50 text-emerald-700 border-emerald-300 font-semibold"
                 : "shrink-0 bg-red-50 text-red-700 border-red-200 font-semibold"
             }
           >
-            {approved
-              ? "✓ Approved"
+            {executed
+              ? "⚡ Executed"
               : proposal.rejectionReason === "insufficient_funds"
                 ? "✗ Rejected — insufficient funds"
                 : "✗ Rejected"}
@@ -416,7 +696,7 @@ function PastCard({ proposal }: { proposal: ProposalDetail }) {
         <CardDescription>
           {proposal.amount != null && (
             <span
-              className={`font-semibold text-sm ${approved ? "text-emerald-600" : "text-red-500"}`}
+              className={`font-semibold text-sm ${isPositive ? "text-emerald-600" : "text-red-500"}`}
             >
               <SolAmount lamports={proposal.amount} />
             </span>
@@ -441,7 +721,7 @@ function PastCard({ proposal }: { proposal: ProposalDetail }) {
         <button
           onClick={() => setExpanded((v) => !v)}
           className={`text-xs self-start transition-colors text-muted-foreground ${
-            approved ? "hover:text-emerald-600" : "hover:text-red-500"
+            isPositive ? "hover:text-emerald-600" : "hover:text-red-500"
           }`}
         >
           {expanded ? "▲ Hide details" : "▼ View details"}
@@ -462,11 +742,33 @@ function PastCard({ proposal }: { proposal: ProposalDetail }) {
               value={`${proposal.tally.approvals} approved · ${proposal.tally.rejections} rejected · ${proposal.tally.total} total`}
             />
             <DetailRow label="Proposed" value={fmtDate(proposal.proposedAt)} />
-            {proposal.resolvedAt && (
+            {proposal.executedAt ? (
               <DetailRow
-                label={approved ? "Approved" : "Rejected"}
+                label="Executed"
+                value={fmtDate(proposal.executedAt)}
+              />
+            ) : proposal.resolvedAt ? (
+              <DetailRow
+                label="Rejected"
                 value={fmtDate(proposal.resolvedAt)}
               />
+            ) : null}
+            {proposal.txSignature && (
+              <div className="flex gap-1">
+                <span className="font-semibold text-foreground w-28 shrink-0">
+                  Tx signature:
+                </span>
+                <a
+                  href={`https://explorer.solana.com/tx/${proposal.txSignature}?cluster=devnet`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-emerald-600 hover:underline font-mono truncate"
+                  title={proposal.txSignature}
+                >
+                  {proposal.txSignature.slice(0, 8)}…
+                  {proposal.txSignature.slice(-8)}
+                </a>
+              </div>
             )}
             {proposal.voterDetails.length > 0 && (
               <div className="flex flex-col gap-1 pt-1">

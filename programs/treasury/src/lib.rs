@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_lang::system_program;
 
-declare_id!("GkkgQsMLxjzZ6zxsbSbReyt4pNM8fUBYf98E3KpWvaer");
+declare_id!("5hMtfmxu4ryajWx9CwiP6jQaB6tAtKhEnmBdrTPLFSo5");
 
 // ---------------------------------------------------------------------------
 // Constants

@@ -7,15 +7,16 @@ let cachedPrice: number | null = null;
 let intervalId: ReturnType<typeof setInterval> | null = null;
 const listeners = new Set<(price: number | null) => void>();
 
+// Proxied through the Convex site to avoid CORS restrictions on localhost
+const SOL_PRICE_URL = `${import.meta.env.VITE_CONVEX_SITE_URL ?? ""}/sol-price`;
+
 async function fetchPrice(): Promise<number | null> {
   try {
-    const res = await fetch(
-      "https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd",
-    );
+    const res = await fetch(SOL_PRICE_URL);
     if (!res.ok) return null;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const data: any = await res.json();
-    return typeof data?.solana?.usd === "number" ? data.solana.usd : null;
+    return typeof data?.price === "number" ? data.price : null;
   } catch {
     return null;
   }

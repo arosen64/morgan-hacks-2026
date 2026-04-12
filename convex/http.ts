@@ -141,6 +141,27 @@ const jwks = httpAction(async (ctx) => {
 });
 
 // ---------------------------------------------------------------------------
+// GET /sol-price  — server-side proxy so the browser avoids CORS restrictions
+// ---------------------------------------------------------------------------
+
+const solPrice = httpAction(async () => {
+  try {
+    const res = await fetch(
+      "https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd",
+    );
+    if (!res.ok) return jsonResponse({ price: null });
+    const data = await res.json();
+    const price =
+      typeof (data as { solana?: { usd?: number } })?.solana?.usd === "number"
+        ? (data as { solana: { usd: number } }).solana.usd
+        : null;
+    return jsonResponse({ price });
+  } catch {
+    return jsonResponse({ price: null });
+  }
+});
+
+// ---------------------------------------------------------------------------
 // Router
 // ---------------------------------------------------------------------------
 
@@ -164,5 +185,11 @@ http.route({
   handler: oidcConfig,
 });
 http.route({ path: "/.well-known/jwks.json", method: "GET", handler: jwks });
+http.route({ path: "/sol-price", method: "GET", handler: solPrice });
+http.route({
+  path: "/sol-price",
+  method: "OPTIONS",
+  handler: corsPreflightHandler,
+});
 
 export default http;

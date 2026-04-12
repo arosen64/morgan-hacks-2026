@@ -6,10 +6,10 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-treasury = "GkkgQsMLxjzZ6zxsbSbReyt4pNM8fUBYf98E3KpWvaer"
+treasury = "5hMtfmxu4ryajWx9CwiP6jQaB6tAtKhEnmBdrTPLFSo5"
 
 [programs.devnet]
-treasury = "GkkgQsMLxjzZ6zxsbSbReyt4pNM8fUBYf98E3KpWvaer"
+treasury = "5hMtfmxu4ryajWx9CwiP6jQaB6tAtKhEnmBdrTPLFSo5"
 
 [registry]
 url = "https://api.apr.dev"

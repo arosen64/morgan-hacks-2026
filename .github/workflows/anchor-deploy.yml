@@ -1,0 +1,86 @@
+name: Anchor Deploy
+
+# Rebuilds and redeploys the Solana program to devnet whenever
+# Anchor source or config changes land on main.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "programs/**"
+      - "Anchor.toml"
+      - "Cargo.toml"
+      - "Cargo.lock"
+
+jobs:
+  anchor-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ── Rust ────────────────────────────────────────────────────────────────
+      - name: Install Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo registry + build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
+
+      # ── Solana CLI ──────────────────────────────────────────────────────────
+      - name: Install Solana CLI
+        run: |
+          sh -c "$(curl -sSfL https://release.anza.xyz/stable/install)"
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
+
+      # ── Anchor ──────────────────────────────────────────────────────────────
+      - name: Cache AVM + Anchor binary
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.avm
+            ~/.cargo/bin/avm
+            ~/.cargo/bin/anchor
+          key: ${{ runner.os }}-anchor-0.31.1
+
+      - name: Install Anchor 0.31.1 via AVM
+        run: |
+          if ! command -v anchor &> /dev/null; then
+            cargo install --git https://github.com/coral-xyz/anchor avm --locked --force
+            avm install 0.31.1
+            avm use 0.31.1
+          fi
+          echo "$HOME/.avm/bin" >> $GITHUB_PATH
+
+      # ── Deploy keypair ───────────────────────────────────────────────────────
+      # Store your playground-keypair.json content as the GitHub secret
+      # ANCHOR_DEPLOY_KEYPAIR (Settings → Secrets → Actions).
+      - name: Write deploy keypair
+        run: echo '${{ secrets.ANCHOR_DEPLOY_KEYPAIR }}' > /tmp/deploy-keypair.json
+
+      # ── Fund deployer wallet on devnet ───────────────────────────────────────
+      - name: Airdrop SOL to deployer (devnet)
+        run: |
+          PUBKEY=$(solana address --keypair /tmp/deploy-keypair.json)
+          echo "Deployer: $PUBKEY"
+          solana airdrop 2 "$PUBKEY" --url devnet || true
+
+      # ── Build & deploy ───────────────────────────────────────────────────────
+      - name: Build Anchor program
+        run: anchor build
+
+      - name: Deploy to devnet
+        run: |
+          anchor deploy \
+            --provider.cluster devnet \
+            --provider.wallet /tmp/deploy-keypair.json
+
+      # ── Clean up secret ──────────────────────────────────────────────────────
+      - name: Remove keypair from disk
+        if: always()
+        run: rm -f /tmp/deploy-keypair.json

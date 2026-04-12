@@ -213,6 +213,7 @@ export const createProposal = mutation({
     contractHash: v.optional(v.string()),
     recipientWallet: v.optional(v.string()),
     url: v.optional(v.string()),
+    onChainProposalId: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const pool = await ctx.db.get(args.poolId);
@@ -239,6 +240,7 @@ export const createProposal = mutation({
       contractHash: args.contractHash,
       recipientWallet: args.recipientWallet,
       url: args.url,
+      onChainProposalId: args.onChainProposalId,
     });
 
     // Auto-cast the proposer's approve vote
@@ -248,30 +250,44 @@ export const createProposal = mutation({
       vote: "approve",
     });
 
-    // Check if unanimous is already satisfied (single-member pool)
-    if (args.type === "amendment" && args.contractJson && args.contractHash) {
-      const rule = resolveRuleForProposal(
-        pool as {
-          approvalRule?: ApprovalRule;
-          amendmentApprovalRule?: ApprovalRule;
-        },
-        "amendment",
-      );
-      const votes = await loadVotesForProposal(ctx, proposalId);
-      const members = await loadActiveMembersForPool(ctx, args.poolId);
+    // Check if the proposer's auto-vote already satisfies the threshold
+    // (e.g. single-member pool where the proposer is the only voter needed)
+    const votes = await loadVotesForProposal(ctx, proposalId);
+    const members = await loadActiveMembersForPool(ctx, args.poolId);
+    const rule = resolveRuleForProposal(
+      pool as {
+        approvalRule?: ApprovalRule;
+        amendmentApprovalRule?: ApprovalRule;
+      },
+      args.type,
+    );
+    const thresholdReached = evaluateApprovalRule(
+      rule,
+      votes,
+      members,
+      args.amount ?? undefined,
+    );
 
-      if (evaluateApprovalRule(rule, votes, members, undefined)) {
-        await ctx.db.patch(proposalId, {
-          status: "approved",
-          resolvedAt: Date.now(),
-        });
-        await commitAmendment(
-          ctx,
-          args.poolId,
-          args.contractJson,
-          args.contractHash,
+    if (args.type === "transaction") {
+      if (thresholdReached) {
+        // Hand off to action for balance check before approving
+        await ctx.scheduler.runAfter(
+          0,
+          internal.treasury.resolveProposalIfReady,
+          { proposalId },
         );
       }
+    } else if (args.contractJson && args.contractHash && thresholdReached) {
+      await ctx.db.patch(proposalId, {
+        status: "approved",
+        resolvedAt: Date.now(),
+      });
+      await commitAmendment(
+        ctx,
+        args.poolId,
+        args.contractJson,
+        args.contractHash,
+      );
     }
 
     return proposalId;
@@ -392,6 +408,7 @@ export const getPoolProposals = query({
         v.literal("pending"),
         v.literal("approved"),
         v.literal("rejected"),
+        v.literal("executed"),
       ),
     ),
   },
@@ -408,6 +425,22 @@ export const getPoolProposals = query({
       .query("proposals")
       .withIndex("by_poolId", (q) => q.eq("poolId", args.poolId))
       .take(100);
+  },
+});
+
+export const recordExecution = mutation({
+  args: {
+    proposalId: v.id("proposals"),
+    txSignature: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const proposal = await ctx.db.get(args.proposalId);
+    if (!proposal) throw new Error("Proposal not found");
+    await ctx.db.patch(args.proposalId, {
+      status: "executed",
+      txSignature: args.txSignature,
+      executedAt: Date.now(),
+    });
   },
 });
 
