@@ -219,7 +219,19 @@ function PendingCard({
 
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-2">
-          <CardTitle className="leading-snug">{proposal.description}</CardTitle>
+          <div className="flex flex-col gap-1.5">
+            <CardTitle className="leading-snug">
+              {proposal.description}
+            </CardTitle>
+            {proposal.geminiValidation?.pass === false && (
+              <span
+                className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5 w-fit"
+                title={proposal.geminiValidation.explanation}
+              >
+                ⚠ Contract violation
+              </span>
+            )}
+          </div>
           <Badge className="shrink-0 bg-violet-600 hover:bg-violet-600 text-white border-0">
             Needs Vote
           </Badge>
@@ -393,7 +405,11 @@ function PastCard({ proposal }: { proposal: ProposalDetail }) {
                 : "shrink-0 bg-red-50 text-red-700 border-red-200 font-semibold"
             }
           >
-            {approved ? "✓ Approved" : "✗ Rejected"}
+            {approved
+              ? "✓ Approved"
+              : proposal.rejectionReason === "insufficient_funds"
+                ? "✗ Rejected — insufficient funds"
+                : "✗ Rejected"}
           </Badge>
         </div>
         <CardDescription>

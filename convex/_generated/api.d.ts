@@ -22,6 +22,8 @@ import type * as members from "../members.js";
 import type * as nonces from "../nonces.js";
 import type * as pools from "../pools.js";
 import type * as seed from "../seed.js";
+import type * as treasury from "../treasury.js";
+import type * as treasuryInternal from "../treasuryInternal.js";
 
 import type {
   ApiFromModules,
@@ -44,6 +46,8 @@ declare const fullApi: ApiFromModules<{
   nonces: typeof nonces;
   pools: typeof pools;
   seed: typeof seed;
+  treasury: typeof treasury;
+  treasuryInternal: typeof treasuryInternal;
 }>;
 
 /**

@@ -209,6 +209,7 @@ function ContractBuilderStep({
         contractJson: JSON.stringify(currentContract),
         contractHash: hash,
       });
+
       onSuccess(poolId);
     } catch (err) {
       setError(
