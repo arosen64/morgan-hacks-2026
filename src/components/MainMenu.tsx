@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { JoinPoolForm } from "./JoinPoolForm";
+import { CreatePoolFlow } from "./CreatePoolFlow";
 
 interface MainMenuProps {
   onSelectPool: (poolId: Id<"pools">) => void;
@@ -111,7 +112,7 @@ export function MainMenu({ onSelectPool }: MainMenuProps) {
           <Button
             size="lg"
             className="bg-violet-600 hover:bg-violet-700 text-white"
-            disabled
+            onClick={() => setCreateOpen(true)}
           >
             + Create Pool
           </Button>

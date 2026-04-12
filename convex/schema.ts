@@ -58,6 +58,9 @@ export default defineSchema({
       v.literal("rejected"),
     ),
     resolvedAt: v.optional(v.number()), // ms timestamp when approved/rejected
+    geminiValidation: v.optional(
+      v.object({ pass: v.boolean(), explanation: v.string() }),
+    ),
   })
     .index("by_poolId", ["poolId"])
     .index("by_poolId_and_status", ["poolId", "status"]),

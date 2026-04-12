@@ -65,6 +65,7 @@ export default function App() {
   if (!activePoolId) {
     return (
       <MainMenu
+        walletAddress={walletAddress}
         onSelectPool={(poolId) =>
           setSelection({ wallet: walletAddress, poolId })
         }

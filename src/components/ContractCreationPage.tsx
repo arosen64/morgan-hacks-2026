@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { useMutation, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { canonicalizeAndHash } from "../lib/contractHash";
@@ -11,31 +11,6 @@ interface ContractCreationPageProps {
   onBack: () => void;
 }
 
-// Default contract shape — Gemini will fill this in (issue #6); for now the manager edits it directly
-function buildDefaultContract(
-  poolName: string,
-  rulesDescription: string,
-  members: { name: string; wallet: string; role: string }[],
-) {
-  return {
-    name: poolName,
-    version: 1,
-    prev_version_hash: null,
-    next_version_hash: null,
-    members,
-    contribution_rules: rulesDescription || "All members contribute equally.",
-    distribution_rules: "Distributions require group approval.",
-    allowed_transaction_types: ["general"],
-    approval_rules: {
-      default: { type: "unanimous" },
-      amendment: { type: "unanimous" },
-    },
-    budget_limits: {
-      per_transaction_max_sol: 1.0,
-    },
-  };
-}
-
 export function ContractCreationPage({
   poolId,
   onSuccess,
@@ -43,32 +18,45 @@ export function ContractCreationPage({
 }: ContractCreationPageProps) {
   const { publicKey } = useWallet();
   const commitContract = useMutation(api.contracts.commitContract);
+  const generateContract = useAction(api.gemini.generateContract);
   const pool = useQuery(api.pools.getPool, { poolId });
   const members = useQuery(api.members.getMembers, { poolId });
 
   const [rulesDescription, setRulesDescription] = useState("");
-  const [preview, setPreview] = useState<object | null>(null);
+  const [preview, setPreview] = useState<Record<string, unknown> | null>(null);
+  const [generating, setGenerating] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 4.1 — Generate a contract preview from the description (Gemini placeholder)
-  function handlePreview() {
+  // Call Gemini to generate a contract from the description
+  async function handlePreview() {
     if (!pool || !members) return;
-    const contractMembers = members.map((m) => ({
-      name: m.name,
-      wallet: m.wallet,
-      role: m.role,
-    }));
-    const contract = buildDefaultContract(
-      pool.name,
-      rulesDescription,
-      contractMembers,
-    );
-    setPreview(contract);
+    setGenerating(true);
     setError(null);
+    try {
+      const contractMembers = members.map(
+        (m): { name: string; wallet: string; role: "manager" | "member" } => ({
+          name: m.name,
+          wallet: m.wallet,
+          role: m.role,
+        }),
+      );
+      const contract = await generateContract({
+        poolName: pool.name,
+        rulesDescription,
+        members: contractMembers,
+      });
+      setPreview(contract);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Failed to generate contract.";
+      setError(message);
+    } finally {
+      setGenerating(false);
+    }
   }
 
-  // 4.3 + 4.4 — Hash, sign (placeholder), and commit
+  // Hash, sign (placeholder), and commit
   async function handleConfirm() {
     if (!preview || !publicKey) return;
     setSubmitting(true);
@@ -86,7 +74,7 @@ export function ContractCreationPage({
         prevHash: undefined,
       });
 
-      onSuccess(); // 4.5 — redirect to dashboard
+      onSuccess();
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to create contract.",
@@ -108,12 +96,13 @@ export function ContractCreationPage({
         <h2 className="text-xl font-bold">Create Governing Contract</h2>
       </div>
 
-      {/* 4.1 — Rules input */}
+      {/* Rules input */}
       {!preview && (
         <div className="flex flex-col gap-4">
           <p className="text-sm text-gray-600">
-            Describe your group's rules in plain language. The contract will be
-            generated from your description.
+            Describe your group's rules in plain language. Gemini will generate
+            a contract from your description. Leave blank for a sensible
+            default.
           </p>
           <textarea
             value={rulesDescription}
@@ -122,17 +111,25 @@ export function ContractCreationPage({
             rows={5}
             className="rounded-md border border-gray-300 px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
+          {error && <p className="text-sm text-red-600">{error}</p>}
           <button
             onClick={handlePreview}
-            disabled={!rulesDescription.trim() || !members || !pool}
-            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+            disabled={generating || !members || !pool}
+            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            Preview Contract →
+            {generating ? (
+              <>
+                <span className="inline-block size-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Generating with Gemini…
+              </>
+            ) : (
+              "Preview Contract →"
+            )}
           </button>
         </div>
       )}
 
-      {/* 4.2 — Contract JSON preview */}
+      {/* Contract JSON preview */}
       {preview && (
         <div className="flex flex-col gap-4">
           <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 flex flex-col gap-3">
@@ -147,7 +144,7 @@ export function ContractCreationPage({
                 Edit
               </button>
             </div>
-            <ContractFieldView contract={preview as Record<string, unknown>} />
+            <ContractFieldView contract={preview} />
           </div>
 
           {error && <p className="text-sm text-red-600">{error}</p>}
@@ -165,8 +162,8 @@ export function ContractCreationPage({
   );
 }
 
-// 4.2 — Field-by-field breakdown of the contract JSON
-function ContractFieldView({
+// Field-by-field breakdown of the contract JSON
+export function ContractFieldView({
   contract,
 }: {
   contract: Record<string, unknown>;

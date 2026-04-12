@@ -13,6 +13,7 @@ import type * as authHelpers from "../authHelpers.js";
 import type * as contractPdf from "../contractPdf.js";
 import type * as contractVersions from "../contractVersions.js";
 import type * as contracts from "../contracts.js";
+import type * as gemini from "../gemini.js";
 import type * as groups from "../groups.js";
 import type * as http from "../http.js";
 import type * as lib_approvalRules from "../lib/approvalRules.js";
@@ -34,6 +35,7 @@ declare const fullApi: ApiFromModules<{
   contractPdf: typeof contractPdf;
   contractVersions: typeof contractVersions;
   contracts: typeof contracts;
+  gemini: typeof gemini;
   groups: typeof groups;
   http: typeof http;
   "lib/approvalRules": typeof lib_approvalRules;

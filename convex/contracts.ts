@@ -1,4 +1,4 @@
-import { mutation, query } from "./_generated/server";
+import { internalQuery, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
 // 3.5 — Commit a contract version: insert record, update pool hash + status
@@ -70,6 +70,19 @@ export const getContractByHash = query({
     return await ctx.db
       .query("contracts")
       .withIndex("by_hash", (q) => q.eq("hash", args.hash))
+      .unique();
+  },
+});
+
+// Internal — fetch the active contract JSON for a pool (used by Gemini actions)
+export const getActiveContractForPool = internalQuery({
+  args: { poolId: v.id("pools") },
+  handler: async (ctx, args) => {
+    const pool = await ctx.db.get(args.poolId);
+    if (!pool?.activeContractHash) return null;
+    return await ctx.db
+      .query("contracts")
+      .withIndex("by_hash", (q) => q.eq("hash", pool.activeContractHash!))
       .unique();
   },
 });
