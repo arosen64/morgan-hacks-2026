@@ -4,6 +4,12 @@ import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { canonicalizeAndHash } from "../lib/contractHash";
 import { ContractFieldView } from "./ContractCreationPage";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
+import { ChevronLeft, Loader2 } from "lucide-react";
 
 interface AmendContractPageProps {
   poolId: Id<"pools">;
@@ -33,7 +39,6 @@ export function AmendContractPage({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // The active contract is the last version in the sorted list
   const activeContractJson = pool?.activeContractHash
     ? contractVersions?.find((cv) => cv.hash === pool.activeContractHash)
         ?.contractJson
@@ -92,91 +97,120 @@ export function AmendContractPage({
   }
 
   return (
-    <div className="flex flex-col gap-6 max-w-lg">
-      <div className="flex items-center gap-3">
-        <button
+    <div className="flex flex-col gap-6 p-6">
+      <div className="flex items-center gap-2">
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={onBack}
-          className="text-sm text-gray-500 hover:text-gray-700"
+          className="gap-1.5 -ml-2"
         >
-          ← Back
-        </button>
-        <h2 className="text-xl font-bold">Amend Contract</h2>
+          <ChevronLeft className="w-4 h-4" />
+          Back
+        </Button>
+        <h2 className="text-xl font-bold text-foreground">Amend Contract</h2>
       </div>
 
       {/* Current contract (read-only) */}
       {activeContract && !preview && (
-        <div className="flex flex-col gap-2">
-          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
-            Current Contract (v{activeContract.version as number})
-          </h3>
-          <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 max-h-56 overflow-auto">
+        <Card>
+          <CardHeader className="py-3 px-4">
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                Current Contract
+              </CardTitle>
+              <Badge className="bg-violet-600 hover:bg-violet-600 text-xs">
+                v{activeContract.version as number}
+              </Badge>
+            </div>
+          </CardHeader>
+          <Separator />
+          <CardContent className="px-4 py-3 max-h-56 overflow-auto">
             <ContractFieldView contract={activeContract} />
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Amendment input */}
       {!preview && (
         <div className="flex flex-col gap-4">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-muted-foreground">
             Describe your proposed change in plain language. Gemini will produce
             an updated contract for review.
           </p>
-          <textarea
+          <Textarea
             value={amendmentDescription}
             onChange={(e) => setAmendmentDescription(e.target.value)}
             placeholder="e.g. Increase the per-transaction limit to 3 SOL and add 'equipment' as an allowed transaction type."
             rows={4}
-            className="rounded-md border border-gray-300 px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="resize-none focus-visible:ring-violet-500"
           />
-          {error && <p className="text-sm text-red-600">{error}</p>}
-          <button
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          <Button
             onClick={handlePreview}
             disabled={
               generating || !amendmentDescription.trim() || !activeContract
             }
-            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2"
+            className="w-full gap-2 bg-violet-600 hover:bg-violet-700"
           >
             {generating ? (
               <>
-                <span className="inline-block size-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin" />
                 Generating with Gemini…
               </>
             ) : (
               "Preview Amendment →"
             )}
-          </button>
+          </Button>
         </div>
       )}
 
       {/* Amended contract preview */}
       {preview && (
         <div className="flex flex-col gap-4">
-          <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-blue-700">
-                Amended Contract Preview (v
-                {preview.contract.version as number})
-              </h3>
-              <button
-                onClick={() => setPreview(null)}
-                className="text-xs text-gray-400 hover:text-gray-600"
-              >
-                Edit
-              </button>
-            </div>
-            <ContractFieldView contract={preview.contract} />
-          </div>
+          <Card className="border-violet-300 bg-violet-50">
+            <CardHeader className="py-3 px-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-sm font-medium text-violet-700 uppercase tracking-wide">
+                    Amended Contract Preview
+                  </CardTitle>
+                  <Badge className="bg-violet-600 hover:bg-violet-600 text-xs">
+                    v{preview.contract.version as number}
+                  </Badge>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-auto py-0 px-1 text-xs text-muted-foreground hover:text-foreground"
+                  onClick={() => setPreview(null)}
+                >
+                  Edit
+                </Button>
+              </div>
+            </CardHeader>
+            <Separator />
+            <CardContent className="px-4 py-3">
+              <ContractFieldView contract={preview.contract} />
+            </CardContent>
+          </Card>
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-sm text-destructive">{error}</p>}
 
-          <button
+          <Button
             onClick={handleConfirm}
             disabled={submitting}
-            className="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
+            className="w-full bg-violet-600 hover:bg-violet-700"
           >
-            {submitting ? "Submitting…" : "Confirm Amendment"}
-          </button>
+            {submitting ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                Submitting…
+              </>
+            ) : (
+              "Confirm Amendment"
+            )}
+          </Button>
         </div>
       )}
 

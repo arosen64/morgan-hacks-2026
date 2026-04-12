@@ -46,91 +46,88 @@ function VersionView({
   });
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <h1 className="text-2xl font-bold text-foreground">Contract</h1>
-              <Badge variant={isActive ? "default" : "secondary"}>
-                {isActive ? "Active" : `v${doc.version}`}
-              </Badge>
-            </div>
-            <p className="text-muted-foreground text-sm">Pool: {poolId}</p>
-          </div>
-          {isActive && (
-            <Button
-              variant="outline"
-              onClick={() => navigate(`/pool/${poolId}/contract/edit`)}
-              className="gap-2"
+    <div className="p-6">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <h1 className="text-2xl font-bold text-foreground">Contract</h1>
+            <Badge
+              variant={isActive ? "default" : "secondary"}
+              className={isActive ? "bg-violet-600 hover:bg-violet-600" : ""}
             >
-              <PenLine className="w-4 h-4" />
-              Amend
-            </Button>
-          )}
+              {isActive ? "Active" : `v${doc.version}`}
+            </Badge>
+          </div>
+          <p className="text-muted-foreground text-sm">Pool: {poolId}</p>
         </div>
-
-        <Card className="mb-4">
-          <CardHeader className="py-3 px-6">
-            <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
-              <span className="flex items-center gap-1.5">
-                <Hash className="w-3.5 h-3.5" />
-                Version {doc.version}
-              </span>
-              <Separator orientation="vertical" className="h-4" />
-              <span className="flex items-center gap-1.5 font-mono text-xs">
-                {doc.versionHash.slice(0, 12)}...
-              </span>
-              <Separator orientation="vertical" className="h-4" />
-              <span className="flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5" />
-                {new Date(doc.createdAt).toLocaleDateString(undefined, {
-                  year: "numeric",
-                  month: "short",
-                  day: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </span>
-            </div>
-          </CardHeader>
-          <Separator />
-          <CardContent className="p-0">
-            <EditorContent editor={editor} />
-          </CardContent>
-        </Card>
-
-        <div className="flex items-center justify-between">
+        {isActive && (
           <Button
             variant="outline"
-            size="sm"
-            disabled={!doc.prevVersionHash}
-            onClick={() =>
-              doc.prevVersionHash && onNavigate(doc.prevVersionHash)
-            }
-            className="gap-2"
+            onClick={() => navigate(`/pool/${poolId}/contract/edit`)}
+            className="gap-2 border-violet-200 text-violet-700 hover:bg-violet-50 hover:text-violet-800"
           >
-            <ChevronLeft className="w-4 h-4" />
-            Previous version
+            <PenLine className="w-4 h-4" />
+            Amend
           </Button>
+        )}
+      </div>
 
-          <span className="text-sm text-muted-foreground">
-            Version {doc.version}
-          </span>
+      <Card className="mb-4">
+        <CardHeader className="py-3 px-6">
+          <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
+            <span className="flex items-center gap-1.5">
+              <Hash className="w-3.5 h-3.5" />
+              Version {doc.version}
+            </span>
+            <Separator orientation="vertical" className="h-4" />
+            <span className="flex items-center gap-1.5 font-mono text-xs">
+              {doc.versionHash.slice(0, 12)}...
+            </span>
+            <Separator orientation="vertical" className="h-4" />
+            <span className="flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5" />
+              {new Date(doc.createdAt).toLocaleDateString(undefined, {
+                year: "numeric",
+                month: "short",
+                day: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </span>
+          </div>
+        </CardHeader>
+        <Separator />
+        <CardContent className="p-0">
+          <EditorContent editor={editor} />
+        </CardContent>
+      </Card>
 
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={!doc.nextVersionHash}
-            onClick={() =>
-              doc.nextVersionHash && onNavigate(doc.nextVersionHash)
-            }
-            className="gap-2"
-          >
-            Next version
-            <ChevronRight className="w-4 h-4" />
-          </Button>
-        </div>
+      <div className="flex items-center justify-between">
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={!doc.prevVersionHash}
+          onClick={() => doc.prevVersionHash && onNavigate(doc.prevVersionHash)}
+          className="gap-2"
+        >
+          <ChevronLeft className="w-4 h-4" />
+          Previous version
+        </Button>
+
+        <span className="text-sm text-muted-foreground">
+          Version {doc.version}
+        </span>
+
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={!doc.nextVersionHash}
+          onClick={() => doc.nextVersionHash && onNavigate(doc.nextVersionHash)}
+          className="gap-2"
+        >
+          Next version
+          <ChevronRight className="w-4 h-4" />
+        </Button>
       </div>
     </div>
   );
@@ -150,11 +147,7 @@ function VersionByHash({
   });
   if (doc === undefined) return <LoadingState />;
   if (doc === null)
-    return (
-      <p className="text-center text-muted-foreground p-8">
-        Version not found.
-      </p>
-    );
+    return <p className="text-muted-foreground p-6">Version not found.</p>;
   return (
     <VersionView
       doc={doc as ContractVersionDoc}
@@ -165,11 +158,7 @@ function VersionByHash({
 }
 
 function LoadingState() {
-  return (
-    <div className="min-h-screen bg-background flex items-center justify-center">
-      <p className="text-muted-foreground">Loading contract...</p>
-    </div>
-  );
+  return <p className="text-muted-foreground p-6">Loading contract...</p>;
 }
 
 export function ContractViewer({ poolId }: { poolId: string }) {
@@ -182,11 +171,9 @@ export function ContractViewer({ poolId }: { poolId: string }) {
   if (activeVersion === undefined) return <LoadingState />;
   if (activeVersion === null)
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-muted-foreground">
-          No contract found for this pool.
-        </p>
-      </div>
+      <p className="text-muted-foreground p-6">
+        No contract found for this pool.
+      </p>
     );
 
   const hashToShow = viewingHash ?? activeVersion.versionHash;
