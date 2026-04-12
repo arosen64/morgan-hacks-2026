@@ -72,6 +72,30 @@ export const getPoolsByWallet = query({
   },
 });
 
+// Record a confirmed on-chain deposit — increments contributedLamports for the depositing member
+export const recordDeposit = mutation({
+  args: {
+    poolId: v.id("pools"),
+    wallet: v.string(),
+    lamports: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const member = await ctx.db
+      .query("members")
+      .withIndex("by_poolId_and_wallet", (q) =>
+        q.eq("poolId", args.poolId).eq("wallet", args.wallet),
+      )
+      .first();
+
+    if (!member) throw new Error("Member not found in this pool.");
+
+    const current = member.contributedLamports ?? 0;
+    await ctx.db.patch(member._id, {
+      contributedLamports: current + args.lamports,
+    });
+  },
+});
+
 // 2.3 — Resolve a member name to their wallet address within a pool
 export const resolveMemberWallet = query({
   args: { poolId: v.id("pools"), name: v.string() },

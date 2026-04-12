@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQuery } from "convex/react";
-import { useWallet } from "@solana/wallet-adapter-react";
+import { useWallet, useConnection } from "@solana/wallet-adapter-react";
+import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { ContractCreationPage } from "./ContractCreationPage";
@@ -8,10 +9,12 @@ import { ContractHistoryPage } from "./ContractHistoryPage";
 import { AllTransactionsPage } from "./AllTransactionsPage";
 import { AmendContractPage } from "./AmendContractPage";
 import { CreateProposalPage } from "./CreateProposalPage";
+import { AddMoneyModal } from "./AddMoneyModal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getTreasuryPda } from "../lib/treasury";
 
 type View =
   | "dashboard"
@@ -19,7 +22,8 @@ type View =
   | "contract-history"
   | "all-transactions"
   | "amend-contract"
-  | "create-proposal";
+  | "create-proposal"
+  | "add-money";
 
 interface PoolDashboardProps {
   poolId: Id<"pools">;
@@ -33,13 +37,37 @@ export function PoolDashboard({
   onBack,
 }: PoolDashboardProps) {
   const { disconnect } = useWallet();
+  const { connection } = useConnection();
   const [view, setView] = useState<View>("dashboard");
+  const [treasuryBalanceSol, setTreasuryBalanceSol] = useState<number | null>(
+    null,
+  );
+  const [balanceRefreshKey, setBalanceRefreshKey] = useState(0);
 
   const pool = useQuery(api.pools.getPool, { poolId });
   const members = useQuery(api.members.getMembers, { poolId });
 
   const currentMember = members?.find((m) => m.wallet === walletAddress);
   const role = currentMember?.role ?? "member";
+
+  const refreshTreasuryBalance = useCallback(() => {
+    setBalanceRefreshKey((k) => k + 1);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    getTreasuryPda(poolId)
+      .then((pda) => connection.getBalance(pda))
+      .then((lamports) => {
+        if (!cancelled) setTreasuryBalanceSol(lamports / LAMPORTS_PER_SOL);
+      })
+      .catch(() => {
+        // treasury may not be initialized yet
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [connection, poolId, balanceRefreshKey]);
 
   // ── Sub-pages ──────────────────────────────────────────────────────────────
 
@@ -118,7 +146,7 @@ export function PoolDashboard({
     },
     {
       label: "Add Money",
-      onClick: () => {}, // issue #28
+      onClick: () => setView("add-money"),
     },
     {
       label: "Invite Members",
@@ -177,9 +205,13 @@ export function PoolDashboard({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-4xl font-bold tracking-tight">—</p>
+            <p className="text-4xl font-bold tracking-tight">
+              {treasuryBalanceSol === null
+                ? "—"
+                : `${treasuryBalanceSol.toFixed(4)} SOL`}
+            </p>
             <p className="text-xs text-muted-foreground mt-1">
-              Live balance available once Add Money is set up.
+              Live on-chain balance (devnet)
             </p>
           </CardContent>
         </Card>
@@ -267,6 +299,19 @@ export function PoolDashboard({
           </CardContent>
         </Card>
       </div>
+
+      {/* Add Money overlay modal */}
+      {view === "add-money" && (
+        <AddMoneyModal
+          poolId={poolId}
+          walletAddress={walletAddress}
+          onSuccess={() => {
+            setView("dashboard");
+            void refreshTreasuryBalance();
+          }}
+          onClose={() => setView("dashboard")}
+        />
+      )}
     </div>
   );
 }

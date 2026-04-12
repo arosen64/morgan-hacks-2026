@@ -110,8 +110,10 @@ export function useWalletAuth() {
     }): Promise<string | null> => {
       if (authState.status !== "authenticated") return null;
       if (forceRefreshToken) {
-        // Tell Convex we have no valid token — drop to unauthenticated so
-        // the app shows SignInScreen rather than a random Phantom popup.
+        // Token expired. If a Phantom signing is already in progress (e.g. a Solana
+        // transaction), don't interrupt it — just return null and let Convex retry later.
+        if (signingRef.current) return null;
+        // Otherwise drop to unauthenticated so the app shows SignInScreen.
         setAuthState({ status: "unauthenticated" });
         return null;
       }
