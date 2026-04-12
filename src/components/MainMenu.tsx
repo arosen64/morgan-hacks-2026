@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CreatePoolFlow } from "./CreatePoolFlow";
 import { JoinPoolForm } from "./JoinPoolForm";
+import logoPurple from "@/assets/logo_purple.png";
 
 interface MainMenuProps {
   walletAddress: string;
@@ -85,13 +86,10 @@ export function MainMenu({ onSelectPool, walletAddress }: MainMenuProps) {
 
   if (createOpen) {
     return (
-      <div className="min-h-screen bg-background flex flex-col">
-        <header className="border-b border-border px-8 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="size-7 rounded-lg bg-violet-500" />
-            <span className="text-lg font-semibold tracking-tight">
-              Potlock
-            </span>
+      <div className="min-h-screen bg-transparent flex flex-col">
+        <header className="border-b border-white/50 bg-white/70 backdrop-blur-md px-8 py-4 flex items-center justify-between sticky top-0 z-10">
+          <div>
+            <img src={logoPurple} alt="Potlock" className="h-25 w-auto" />
           </div>
           <Button variant="ghost" size="sm" onClick={() => disconnect()}>
             Disconnect
@@ -112,12 +110,11 @@ export function MainMenu({ onSelectPool, walletAddress }: MainMenuProps) {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-transparent">
       {/* Top nav */}
-      <header className="border-b border-border px-8 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <div className="size-7 rounded-lg bg-violet-500" />
-          <span className="text-lg font-semibold tracking-tight">Potlock</span>
+      <header className="border-b border-white/50 bg-white/70 backdrop-blur-md px-8 py-4 flex items-center justify-between sticky top-0 z-10">
+        <div>
+          <img src={logoPurple} alt="Potlock" className="h-25 w-auto" />
         </div>
         <Button variant="ghost" size="sm" onClick={() => disconnect()}>
           Disconnect
@@ -125,24 +122,33 @@ export function MainMenu({ onSelectPool, walletAddress }: MainMenuProps) {
       </header>
 
       {/* Hero section */}
-      <div className="px-8 pt-16 pb-10 max-w-xl mx-auto text-center flex flex-col items-center gap-4">
-        <div className="inline-flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50 px-4 py-1.5 text-sm font-medium text-violet-700">
-          <div className="size-2 rounded-full bg-violet-500" />
+      <div className="relative px-8 pt-16 pb-10 max-w-xl mx-auto text-center flex flex-col items-center gap-4 overflow-hidden">
+        {/* Decorative glow behind heading */}
+        <div className="absolute top-8 left-1/2 -translate-x-1/2 w-80 h-40 bg-violet-400/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="inline-flex items-center gap-2 rounded-full border border-violet-300 bg-violet-100 px-4 py-1.5 text-sm font-semibold text-violet-700 shadow-sm shadow-violet-100">
+          <div className="size-2 rounded-full bg-violet-500 animate-pulse" />
           Your Pots
         </div>
-        <h1 className="text-5xl font-bold tracking-tight">My Pots</h1>
-        <p className="text-lg text-muted-foreground max-w-sm">
+        <h1 className="text-5xl font-bold tracking-tighter bg-gradient-to-r from-violet-700 via-violet-500 to-indigo-400 bg-clip-text text-transparent drop-shadow-sm">
+          My Pots
+        </h1>
+        <p className="text-base text-muted-foreground max-w-sm">
           Manage your pots or start a new one with people you trust.
         </p>
         <div className="flex gap-3 mt-2">
           <Button
             size="lg"
-            className="bg-violet-600 hover:bg-violet-700 text-white"
+            className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white btn-glow border-0"
             onClick={() => setCreateOpen(true)}
           >
             + Create Pot
           </Button>
-          <Button size="lg" variant="outline" onClick={() => setJoinOpen(true)}>
+          <Button
+            size="lg"
+            variant="outline"
+            className="border-violet-200 text-violet-700 hover:bg-violet-50 hover:border-violet-300"
+            onClick={() => setJoinOpen(true)}
+          >
             Join Pot
           </Button>
         </div>
@@ -153,20 +159,69 @@ export function MainMenu({ onSelectPool, walletAddress }: MainMenuProps) {
         {pools === undefined ? (
           <div className="flex flex-col gap-3">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-20 rounded-xl bg-muted animate-pulse" />
+              <div
+                key={i}
+                className="h-20 rounded-2xl bg-violet-50/60 border border-violet-100/50 animate-pulse"
+              />
             ))}
           </div>
         ) : pools.length === 0 ? (
-          <Card className="border-dashed">
-            <CardContent className="py-20 flex flex-col items-center gap-3 text-center">
-              <div className="size-12 rounded-full bg-violet-50 flex items-center justify-center">
-                <div className="size-6 rounded-full border-2 border-violet-300" />
+          <Card className="border-violet-100/60">
+            <CardContent className="py-16 flex flex-col items-center gap-4 text-center">
+              <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
+                <circle cx="40" cy="40" r="36" fill="rgba(139,92,246,0.08)" />
+                <rect
+                  x="34"
+                  y="16"
+                  width="12"
+                  height="4"
+                  rx="2"
+                  fill="rgba(139,92,246,0.55)"
+                />
+                <rect
+                  x="20"
+                  y="26"
+                  width="40"
+                  height="9"
+                  rx="4.5"
+                  fill="rgba(139,92,246,0.18)"
+                  stroke="rgba(139,92,246,0.45)"
+                  strokeWidth="1.5"
+                />
+                <path
+                  d="M22 35 C21 50 22 63 40 63 C58 63 59 50 58 35 Z"
+                  fill="rgba(139,92,246,0.1)"
+                  stroke="rgba(139,92,246,0.4)"
+                  strokeWidth="1.5"
+                />
+                <ellipse
+                  cx="51"
+                  cy="46"
+                  rx="3.5"
+                  ry="7"
+                  fill="rgba(255,255,255,0.5)"
+                  transform="rotate(-20 51 46)"
+                />
+                <path
+                  d="M36 48 H44"
+                  stroke="rgba(139,92,246,0.6)"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M40 44 V52"
+                  stroke="rgba(139,92,246,0.6)"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                />
+              </svg>
+              <div className="flex flex-col gap-1">
+                <p className="font-semibold text-base">No pots yet</p>
+                <p className="text-sm text-muted-foreground max-w-xs">
+                  You're not a member of any pots. Create one or ask a manager
+                  to add you.
+                </p>
               </div>
-              <p className="font-medium">No pots yet</p>
-              <p className="text-sm text-muted-foreground max-w-xs">
-                You're not a member of any pots. Create one or ask a manager to
-                add you.
-              </p>
             </CardContent>
           </Card>
         ) : (
@@ -174,19 +229,22 @@ export function MainMenu({ onSelectPool, walletAddress }: MainMenuProps) {
             {pools.map(({ pool, role }) => (
               <Card
                 key={pool._id}
-                className="cursor-pointer hover:border-violet-300 hover:shadow-md transition-all group"
+                className="cursor-pointer border-l-[3px] border-l-violet-400/70 hover:border-l-violet-500 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(139,92,246,0.18),0_2px_8px_rgba(0,0,0,0.08)] transition-all duration-200 group"
                 onClick={() => onSelectPool(pool._id)}
               >
-                <CardContent className="flex items-center justify-between py-6 px-6">
+                <CardContent className="flex items-center justify-between py-5 px-5">
                   <div className="flex items-center gap-4">
-                    <div className="size-10 rounded-lg bg-violet-100 flex items-center justify-center text-violet-700 font-bold text-lg group-hover:bg-violet-200 transition-colors">
+                    <div className="size-11 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-white font-bold text-lg shadow-md shadow-violet-200 group-hover:shadow-violet-300 transition-shadow">
                       {pool.name.charAt(0).toUpperCase()}
                     </div>
-                    <div>
-                      <p className="font-semibold text-base">{pool.name}</p>
-                      <p className="text-sm text-muted-foreground capitalize">
-                        {pool.status}
+                    <div className="flex flex-col gap-1">
+                      <p className="font-semibold text-base leading-tight">
+                        {pool.name}
                       </p>
+                      <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-violet-100 text-violet-700 border border-violet-200 capitalize">
+                        <span className="size-1.5 rounded-full bg-violet-500" />
+                        {pool.status}
+                      </span>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -194,13 +252,13 @@ export function MainMenu({ onSelectPool, walletAddress }: MainMenuProps) {
                       variant={role === "manager" ? "default" : "secondary"}
                       className={
                         role === "manager"
-                          ? "bg-violet-600 hover:bg-violet-600"
-                          : ""
+                          ? "bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 border-0 text-white shadow-sm"
+                          : "bg-white/80 text-slate-600 border-slate-200"
                       }
                     >
                       {role}
                     </Badge>
-                    <span className="text-muted-foreground group-hover:text-foreground transition-colors">
+                    <span className="size-7 flex items-center justify-center rounded-full bg-violet-50 text-violet-500 group-hover:bg-violet-100 group-hover:text-violet-700 transition-all text-sm font-bold">
                       →
                     </span>
                   </div>
@@ -219,7 +277,7 @@ export function MainMenu({ onSelectPool, walletAddress }: MainMenuProps) {
             if (e.target === e.currentTarget) handleClose();
           }}
         >
-          <div className="bg-background rounded-2xl border border-border shadow-xl w-full max-w-md mx-4 p-6 flex flex-col gap-5">
+          <div className="bg-white/90 backdrop-blur-md rounded-2xl border border-white/80 shadow-[0_8px_40px_rgba(0,0,0,0.15)] w-full max-w-md mx-4 p-6 flex flex-col gap-5">
             <div className="flex items-start justify-between">
               <div className="flex flex-col gap-1">
                 <h2 className="text-lg font-semibold">

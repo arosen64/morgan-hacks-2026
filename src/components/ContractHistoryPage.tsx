@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { ChevronLeft, Clock, Hash } from "lucide-react";
+import { ContractDisplay } from "./ContractDisplay";
 
 interface ContractHistoryPageProps {
   poolId: Id<"pools">;
@@ -63,7 +64,7 @@ export function ContractHistoryPage({
 
   if (versions.length === 0 && pendingAmendmentProposals.length === 0) {
     return (
-      <div className="flex flex-col gap-4 p-6">
+      <div className="flex flex-col gap-4 p-6 max-w-2xl mx-auto w-full">
         <Button
           variant="ghost"
           size="sm"
@@ -81,7 +82,7 @@ export function ContractHistoryPage({
   }
 
   return (
-    <div className="flex flex-col gap-4 p-6">
+    <div className="flex flex-col gap-4 p-6 max-w-2xl mx-auto w-full">
       <div className="flex items-center gap-2">
         <Button
           variant="ghost"
@@ -222,7 +223,7 @@ export function ContractHistoryPage({
                     <p className="text-xs font-medium text-amber-700 mb-2">
                       Proposed contract changes
                     </p>
-                    <ContractFieldView contract={proposedContract} />
+                    <ContractDisplay contract={proposedContract} />
                   </CardContent>
                 </>
               )}
@@ -284,7 +285,11 @@ export function ContractHistoryPage({
                         Historical version — not the active contract
                       </p>
                     )}
-                    <ContractFieldView contract={JSON.parse(v.contractJson)} />
+                    <ContractDisplay
+                      contract={
+                        JSON.parse(v.contractJson) as Record<string, unknown>
+                      }
+                    />
                   </CardContent>
                 </>
               )}
@@ -293,32 +298,5 @@ export function ContractHistoryPage({
         })}
       </div>
     </div>
-  );
-}
-
-function ContractFieldView({
-  contract,
-}: {
-  contract: Record<string, unknown>;
-}) {
-  return (
-    <dl className="flex flex-col gap-2 text-sm">
-      {Object.entries(contract).map(([key, value]) => (
-        <div key={key} className="grid grid-cols-3 gap-2">
-          <dt className="font-medium text-muted-foreground capitalize">
-            {key.replace(/_/g, " ")}
-          </dt>
-          <dd className="col-span-2 text-foreground break-all">
-            {typeof value === "object" ? (
-              <pre className="text-xs bg-muted rounded p-1 overflow-auto max-h-24">
-                {JSON.stringify(value, null, 2)}
-              </pre>
-            ) : (
-              String(value ?? "—")
-            )}
-          </dd>
-        </div>
-      ))}
-    </dl>
   );
 }

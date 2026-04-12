@@ -3,7 +3,7 @@ import { useAction, useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { canonicalizeAndHash } from "../lib/contractHash";
-import { ContractFieldView } from "./ContractCreationPage";
+import { ContractDisplay } from "./ContractDisplay";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -103,7 +103,7 @@ export function AmendContractPage({
 
   if (submitted) {
     return (
-      <div className="flex flex-col gap-6 p-6 items-center text-center">
+      <div className="flex flex-col gap-4 p-6 max-w-2xl mx-auto w-full items-center text-center">
         <CheckCircle2 className="w-12 h-12 text-green-500" />
         <div>
           <h2 className="text-xl font-bold text-foreground">
@@ -125,7 +125,7 @@ export function AmendContractPage({
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-4 p-6 max-w-2xl mx-auto w-full">
       <div className="flex items-center gap-2">
         <Button
           variant="ghost"
@@ -154,7 +154,7 @@ export function AmendContractPage({
           </CardHeader>
           <Separator />
           <CardContent className="px-4 py-3 max-h-56 overflow-auto">
-            <ContractFieldView contract={activeContract} />
+            <ContractDisplay contract={activeContract} />
           </CardContent>
         </Card>
       )}
@@ -219,7 +219,7 @@ export function AmendContractPage({
             </CardHeader>
             <Separator />
             <CardContent className="px-4 py-3">
-              <ContractFieldView contract={preview.contract} />
+              <ContractDisplay contract={preview.contract} />
             </CardContent>
           </Card>
 
