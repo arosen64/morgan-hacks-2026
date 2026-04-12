@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "convex/react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { api } from "../../convex/_generated/api";
@@ -11,11 +12,24 @@ interface MainMenuProps {
   onSelectPool: (poolId: Id<"pools">) => void;
 }
 
+function parsePoolId(value: string): string {
+  try {
+    const url = new URL(value);
+    const param = url.searchParams.get("pool");
+    if (param) return param;
+  } catch {
+    // not a URL — treat raw value as pool ID
+  }
+  return value.trim();
+}
+
 export function MainMenu({
   onSelectPool,
 }: Omit<MainMenuProps, "walletAddress">) {
   const { disconnect } = useWallet();
   const pools = useQuery(api.members.getPoolsByWallet, {});
+  const [joinOpen, setJoinOpen] = useState(false);
+  const [joinInput, setJoinInput] = useState("");
 
   return (
     <div className="min-h-screen bg-background">
@@ -48,7 +62,7 @@ export function MainMenu({
           >
             + Create Pool
           </Button>
-          <Button size="lg" variant="outline" disabled>
+          <Button size="lg" variant="outline" onClick={() => setJoinOpen(true)}>
             Join Pool
           </Button>
         </div>
@@ -116,6 +130,72 @@ export function MainMenu({
           </div>
         )}
       </div>
+
+      {/* Join Pool overlay */}
+      {joinOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setJoinOpen(false);
+              setJoinInput("");
+            }
+          }}
+        >
+          <div className="bg-background rounded-2xl border border-border shadow-xl w-full max-w-md mx-4 p-6 flex flex-col gap-5">
+            <div className="flex items-start justify-between">
+              <div className="flex flex-col gap-1">
+                <h2 className="text-lg font-semibold">Join a Pool</h2>
+                <p className="text-sm text-muted-foreground">
+                  Paste an invite link or enter a pool ID.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setJoinOpen(false);
+                  setJoinInput("");
+                }}
+                className="text-muted-foreground hover:text-foreground transition-colors ml-4 mt-0.5 text-xl leading-none"
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+            <input
+              type="text"
+              value={joinInput}
+              onChange={(e) => setJoinInput(e.target.value)}
+              placeholder="Paste invite link or pool ID…"
+              className="rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+              autoFocus
+            />
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => {
+                  setJoinOpen(false);
+                  setJoinInput("");
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="flex-1 bg-violet-600 hover:bg-violet-700 text-white"
+                disabled={!joinInput.trim()}
+                onClick={() => {
+                  const poolId = parsePoolId(joinInput) as Id<"pools">;
+                  setJoinOpen(false);
+                  setJoinInput("");
+                  onSelectPool(poolId);
+                }}
+              >
+                Join Pool
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
