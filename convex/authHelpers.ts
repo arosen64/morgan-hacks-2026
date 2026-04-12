@@ -85,7 +85,7 @@ export const verifySignatureAndMint = internalAction({
       .setIssuer(siteUrl)
       .setAudience("convex")
       .setIssuedAt()
-      .setExpirationTime("7d")
+      .setExpirationTime("1h")
       .sign(privateKey);
   },
 });

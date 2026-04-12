@@ -46,20 +46,6 @@ export const activatePool = mutation({
   },
 });
 
-// Returns pool details with member count for the join confirmation step
-export const getPoolWithMemberCount = query({
-  args: { poolId: v.id("pools") },
-  handler: async (ctx, args) => {
-    const pool = await ctx.db.get(args.poolId);
-    if (!pool) return null;
-    const members = await ctx.db
-      .query("members")
-      .withIndex("by_poolId", (q) => q.eq("poolId", args.poolId))
-      .take(1000);
-    return { pool, memberCount: members.length };
-  },
-});
-
 // Returns members formatted for inclusion in the contract JSON
 export const getMembersForContract = query({
   args: { poolId: v.id("pools") },

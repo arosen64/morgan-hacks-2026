@@ -5,15 +5,10 @@ import type { Id } from "../../convex/_generated/dataModel";
 
 interface JoinPoolFormProps {
   poolId: Id<"pools">;
-  walletAddress: string;
   onSuccess: () => void;
 }
 
-export function JoinPoolForm({
-  poolId,
-  walletAddress,
-  onSuccess,
-}: JoinPoolFormProps) {
+export function JoinPoolForm({ poolId, onSuccess }: JoinPoolFormProps) {
   const addMember = useMutation(api.members.addMember);
 
   const [name, setName] = useState("");
@@ -25,12 +20,7 @@ export function JoinPoolForm({
     setError(null);
     setLoading(true);
     try {
-      await addMember({
-        poolId,
-        name: name.trim(),
-        role: "member",
-        wallet: walletAddress,
-      });
+      await addMember({ poolId, name: name.trim(), role: "member" });
       onSuccess(); // 3.5 — trigger redirect / parent callback on success
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to join pool.");
@@ -41,21 +31,6 @@ export function JoinPoolForm({
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4 max-w-sm">
-      <div className="flex flex-col gap-1">
-        <label
-          className="text-sm font-medium text-gray-700"
-          htmlFor="wallet-address"
-        >
-          Wallet address
-        </label>
-        <input
-          id="wallet-address"
-          type="text"
-          value={walletAddress}
-          readOnly
-          className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-500 font-mono cursor-not-allowed"
-        />
-      </div>
       <div className="flex flex-col gap-1">
         <label
           className="text-sm font-medium text-gray-700"
