@@ -8,9 +8,15 @@ import { MemberList } from "./MemberList";
 import { PoolStatusBadge, PoolStatusBanner } from "./PoolStatusBanner";
 import { ContractCreationPage } from "./ContractCreationPage";
 import { ContractHistoryPage } from "./ContractHistoryPage";
+import { AllTransactionsPage } from "./AllTransactionsPage";
 import { Button } from "@/components/ui/button";
 
-type View = "dashboard" | "join" | "create-contract" | "contract-history";
+type View =
+  | "dashboard"
+  | "join"
+  | "create-contract"
+  | "contract-history"
+  | "all-transactions";
 
 interface PoolDashboardProps {
   poolId: Id<"pools">;
@@ -57,6 +63,18 @@ export function PoolDashboard({
     );
   }
 
+  if (view === "all-transactions") {
+    return (
+      <div className="min-h-screen p-8 max-w-4xl mx-auto">
+        <AllTransactionsPage
+          poolId={poolId}
+          currentMemberId={currentMember?._id ?? null}
+          onBack={() => setView("dashboard")}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen p-8 max-w-lg mx-auto flex flex-col gap-6">
       {/* Header */}
@@ -71,6 +89,15 @@ export function PoolDashboard({
           <PoolStatusBadge status={poolStatus} />
         </div>
         <div className="flex gap-2">
+          {poolStatus === "active" && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setView("all-transactions")}
+            >
+              All Transactions
+            </Button>
+          )}
           <Button
             variant="outline"
             size="sm"

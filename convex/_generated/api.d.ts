@@ -8,9 +8,13 @@
  * @module
  */
 
+import type * as approvals from "../approvals.js";
 import type * as contractPdf from "../contractPdf.js";
 import type * as contractVersions from "../contractVersions.js";
 import type * as contracts from "../contracts.js";
+import type * as groups from "../groups.js";
+import type * as lib_approvalRules from "../lib/approvalRules.js";
+import type * as lib_validators from "../lib/validators.js";
 import type * as members from "../members.js";
 import type * as pools from "../pools.js";
 
@@ -21,9 +25,13 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  approvals: typeof approvals;
   contractPdf: typeof contractPdf;
   contractVersions: typeof contractVersions;
   contracts: typeof contracts;
+  groups: typeof groups;
+  "lib/approvalRules": typeof lib_approvalRules;
+  "lib/validators": typeof lib_validators;
   members: typeof members;
   pools: typeof pools;
 }>;

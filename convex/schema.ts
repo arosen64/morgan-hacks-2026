@@ -1,11 +1,14 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { approvalRuleValidator } from "./lib/validators";
 
 export default defineSchema({
   pools: defineTable({
     name: v.string(),
     status: v.union(v.literal("pre-contract"), v.literal("active")),
     activeContractHash: v.optional(v.string()),
+    approvalRule: v.optional(approvalRuleValidator),
+    amendmentApprovalRule: v.optional(approvalRuleValidator),
   }),
 
   members: defineTable({
@@ -13,9 +16,11 @@ export default defineSchema({
     name: v.string(),
     wallet: v.string(),
     role: v.union(v.literal("manager"), v.literal("member")),
+    isActive: v.optional(v.boolean()), // optional for backward compat; absent treated as active
   })
     .index("by_poolId", ["poolId"])
-    .index("by_wallet", ["wallet"]),
+    .index("by_wallet", ["wallet"])
+    .index("by_poolId_and_wallet", ["poolId", "wallet"]),
 
   contracts: defineTable({
     poolId: v.id("pools"),
@@ -40,4 +45,27 @@ export default defineSchema({
   })
     .index("by_poolId", ["poolId"])
     .index("by_versionHash", ["versionHash"]),
+
+  proposals: defineTable({
+    poolId: v.id("pools"),
+    type: v.union(v.literal("transaction"), v.literal("amendment")),
+    proposerId: v.id("members"),
+    description: v.string(),
+    amount: v.optional(v.number()), // lamports; only for transaction proposals
+    status: v.union(
+      v.literal("pending"),
+      v.literal("approved"),
+      v.literal("rejected"),
+    ),
+  })
+    .index("by_poolId", ["poolId"])
+    .index("by_poolId_and_status", ["poolId", "status"]),
+
+  votes: defineTable({
+    proposalId: v.id("proposals"),
+    memberId: v.id("members"),
+    vote: v.union(v.literal("approve"), v.literal("reject")),
+  })
+    .index("by_proposalId", ["proposalId"])
+    .index("by_proposalId_and_memberId", ["proposalId", "memberId"]),
 });
