@@ -6,14 +6,12 @@ import type { Id } from "../../convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { JoinPoolForm } from "./JoinPoolForm";
 import { CreatePoolFlow } from "./CreatePoolFlow";
 
 interface MainMenuProps {
+  walletAddress: string;
   onSelectPool: (poolId: Id<"pools">) => void;
 }
-
-type JoinPhase = "input" | "joining";
 
 function parsePoolId(value: string): string {
   try {
@@ -26,63 +24,41 @@ function parsePoolId(value: string): string {
   return value.trim();
 }
 
-export function MainMenu({ onSelectPool }: MainMenuProps) {
-  const { disconnect, publicKey } = useWallet();
-  const walletAddress = publicKey?.toBase58() ?? "";
+export function MainMenu({ onSelectPool, walletAddress }: MainMenuProps) {
+  const { disconnect } = useWallet();
   const pools = useQuery(api.members.getPoolsByWallet, {
     wallet: walletAddress,
   });
-
   const [joinOpen, setJoinOpen] = useState(false);
   const [joinInput, setJoinInput] = useState("");
-  const [joinPhase, setJoinPhase] = useState<JoinPhase>("input");
-  // ID being looked up — drives the reactive query below
-  const [lookupPoolId, setLookupPoolId] = useState<Id<"pools"> | null>(null);
-  // ID confirmed by the user and passed to JoinPoolForm
-  const [confirmedPoolId, setConfirmedPoolId] = useState<Id<"pools"> | null>(
-    null,
-  );
-  const [inputError, setInputError] = useState<string | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
 
-  const poolData = useQuery(
-    api.pools.getPoolWithMemberCount,
-    lookupPoolId !== null ? { poolId: lookupPoolId } : "skip",
-  );
-
-  // Derived from query state — no useEffect needed
-  const isLooking = lookupPoolId !== null && poolData === undefined;
-  const lookupNotFound = lookupPoolId !== null && poolData === null;
-  const lookupFound =
-    lookupPoolId !== null && poolData !== undefined && poolData !== null;
-
-  function handleClose() {
-    setJoinOpen(false);
-    setJoinInput("");
-    setJoinPhase("input");
-    setLookupPoolId(null);
-    setConfirmedPoolId(null);
-    setInputError(null);
-  }
-
-  function handleLookup() {
-    const parsed = parsePoolId(joinInput);
-    if (parsed.length < 10) {
-      setInputError("Enter a valid pool ID or invite link.");
-      return;
-    }
-    setInputError(null);
-    setLookupPoolId(parsed as Id<"pools">);
-  }
-
-  function handleConfirm() {
-    setConfirmedPoolId(lookupPoolId);
-    setJoinPhase("joining");
-  }
-
-  function handleJoinSuccess() {
-    const poolId = confirmedPoolId!;
-    handleClose();
-    onSelectPool(poolId);
+  if (createOpen) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <header className="border-b border-border px-8 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="size-7 rounded-lg bg-violet-500" />
+            <span className="text-lg font-semibold tracking-tight">
+              Potlock
+            </span>
+          </div>
+          <Button variant="ghost" size="sm" onClick={() => disconnect()}>
+            Disconnect
+          </Button>
+        </header>
+        <div className="flex-1 flex items-start justify-center px-8 py-10">
+          <CreatePoolFlow
+            founderWallet={walletAddress}
+            onSuccess={(poolId) => {
+              setCreateOpen(false);
+              onSelectPool(poolId);
+            }}
+            onCancel={() => setCreateOpen(false)}
+          />
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -185,113 +161,68 @@ export function MainMenu({ onSelectPool }: MainMenuProps) {
         )}
       </div>
 
-      {/* Join Pool modal */}
+      {/* Join Pool overlay */}
       {joinOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
           onClick={(e) => {
-            if (e.target === e.currentTarget) handleClose();
+            if (e.target === e.currentTarget) {
+              setJoinOpen(false);
+              setJoinInput("");
+            }
           }}
         >
           <div className="bg-background rounded-2xl border border-border shadow-xl w-full max-w-md mx-4 p-6 flex flex-col gap-5">
             <div className="flex items-start justify-between">
               <div className="flex flex-col gap-1">
-                <h2 className="text-lg font-semibold">
-                  {joinPhase === "input" ? "Join a Pool" : "Enter Your Name"}
-                </h2>
+                <h2 className="text-lg font-semibold">Join a Pool</h2>
                 <p className="text-sm text-muted-foreground">
-                  {joinPhase === "input"
-                    ? "Paste an invite link or enter a pool ID."
-                    : "Choose a display name for this pool."}
+                  Paste an invite link or enter a pool ID.
                 </p>
               </div>
               <button
-                onClick={handleClose}
+                onClick={() => {
+                  setJoinOpen(false);
+                  setJoinInput("");
+                }}
                 className="text-muted-foreground hover:text-foreground transition-colors ml-4 mt-0.5 text-xl leading-none"
                 aria-label="Close"
               >
                 ×
               </button>
             </div>
-
-            {/* Step: input + lookup result */}
-            {joinPhase === "input" && (
-              <>
-                <input
-                  type="text"
-                  value={joinInput}
-                  onChange={(e) => {
-                    setJoinInput(e.target.value);
-                    setInputError(null);
-                    setLookupPoolId(null); // clear stale lookup on edit
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && joinInput.trim()) handleLookup();
-                  }}
-                  placeholder="Paste invite link or pool ID…"
-                  className="rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
-                  autoFocus
-                />
-
-                {/* Inline errors */}
-                {inputError && (
-                  <p className="text-sm text-red-600 -mt-2">{inputError}</p>
-                )}
-                {lookupNotFound && (
-                  <p className="text-sm text-red-600 -mt-2">
-                    Pool not found. Check the ID or invite link.
-                  </p>
-                )}
-
-                {/* Confirmation panel — appears when lookup succeeds */}
-                {lookupFound && poolData && (
-                  <div className="rounded-xl border border-border bg-muted/40 px-5 py-4 flex flex-col gap-1">
-                    <p className="font-semibold text-base">
-                      {poolData.pool.name}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {poolData.memberCount}{" "}
-                      {poolData.memberCount === 1 ? "member" : "members"}
-                    </p>
-                  </div>
-                )}
-
-                <div className="flex gap-3">
-                  <Button
-                    variant="outline"
-                    className="flex-1"
-                    onClick={handleClose}
-                  >
-                    Cancel
-                  </Button>
-                  {lookupFound ? (
-                    <Button
-                      className="flex-1 bg-violet-600 hover:bg-violet-700 text-white"
-                      onClick={handleConfirm}
-                    >
-                      Continue
-                    </Button>
-                  ) : (
-                    <Button
-                      className="flex-1 bg-violet-600 hover:bg-violet-700 text-white"
-                      disabled={!joinInput.trim() || isLooking}
-                      onClick={handleLookup}
-                    >
-                      {isLooking ? "Looking up…" : "Look Up Pool"}
-                    </Button>
-                  )}
-                </div>
-              </>
-            )}
-
-            {/* Step: joining */}
-            {joinPhase === "joining" && confirmedPoolId && (
-              <JoinPoolForm
-                poolId={confirmedPoolId}
-                walletAddress={walletAddress}
-                onSuccess={handleJoinSuccess}
-              />
-            )}
+            <input
+              type="text"
+              value={joinInput}
+              onChange={(e) => setJoinInput(e.target.value)}
+              placeholder="Paste invite link or pool ID…"
+              className="rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+              autoFocus
+            />
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => {
+                  setJoinOpen(false);
+                  setJoinInput("");
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="flex-1 bg-violet-600 hover:bg-violet-700 text-white"
+                disabled={!joinInput.trim()}
+                onClick={() => {
+                  const poolId = parsePoolId(joinInput) as Id<"pools">;
+                  setJoinOpen(false);
+                  setJoinInput("");
+                  onSelectPool(poolId);
+                }}
+              >
+                Join Pool
+              </Button>
+            </div>
           </div>
         </div>
       )}
