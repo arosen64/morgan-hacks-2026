@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CreatePoolFlow } from "./CreatePoolFlow";
 import { JoinPoolForm } from "./JoinPoolForm";
+import logoPurple from "@/assets/logo_purple.png";
 
 interface MainMenuProps {
   walletAddress: string;
@@ -87,11 +88,8 @@ export function MainMenu({ onSelectPool, walletAddress }: MainMenuProps) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
         <header className="border-b border-border px-8 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="size-7 rounded-lg bg-violet-500" />
-            <span className="text-lg font-semibold tracking-tight">
-              Potlock
-            </span>
+          <div>
+            <img src={logoPurple} alt="Potlock" className="h-25 w-auto" />
           </div>
           <Button variant="ghost" size="sm" onClick={() => disconnect()}>
             Disconnect
@@ -115,9 +113,8 @@ export function MainMenu({ onSelectPool, walletAddress }: MainMenuProps) {
     <div className="min-h-screen bg-background">
       {/* Top nav */}
       <header className="border-b border-border px-8 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <div className="size-7 rounded-lg bg-violet-500" />
-          <span className="text-lg font-semibold tracking-tight">Potlock</span>
+        <div>
+          <img src={logoPurple} alt="Potlock" className="h-25 w-auto" />
         </div>
         <Button variant="ghost" size="sm" onClick={() => disconnect()}>
           Disconnect

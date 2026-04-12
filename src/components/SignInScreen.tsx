@@ -1,5 +1,7 @@
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import heroImage from "@/assets/hero.png";
+import logoBlack from "@/assets/logo_black.png";
+import { Logo } from "./Logo";
 
 interface SignInScreenProps {
   signingState?: "signing" | "error";
@@ -16,9 +18,8 @@ export function SignInScreen({
     <div className="min-h-screen grid lg:grid-cols-2">
       {/* Left panel — branding */}
       <div className="hidden lg:flex flex-col justify-between bg-zinc-950 p-12 text-white">
-        <div className="flex items-center gap-2.5">
-          <div className="size-7 rounded-lg bg-violet-500" />
-          <span className="text-lg font-semibold tracking-tight">Potlock</span>
+        <div>
+          <img src={logoBlack} alt="Potlock" className="h-35 w-auto" />
         </div>
 
         <div className="flex flex-col items-center gap-8">
@@ -41,7 +42,7 @@ export function SignInScreen({
       <div className="flex flex-col items-center justify-center gap-8 p-8 bg-background">
         {/* Mobile logo */}
         <div className="flex items-center gap-2.5 lg:hidden">
-          <div className="size-7 rounded-lg bg-violet-500" />
+          <Logo size="sm" />
           <span className="text-lg font-semibold tracking-tight">Potlock</span>
         </div>
 

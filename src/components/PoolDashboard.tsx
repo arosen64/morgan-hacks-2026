@@ -5,6 +5,7 @@ import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { SolAmount } from "./SolAmount";
+import logoPurple from "@/assets/logo_purple.png";
 import { ContractCreationPage } from "./ContractCreationPage";
 import { ContractHistoryPage } from "./ContractHistoryPage";
 import { AllTransactionsPage } from "./AllTransactionsPage";
@@ -198,9 +199,8 @@ export function PoolDashboard({
     <div className="min-h-screen bg-background">
       {/* Top nav — identical to MainMenu */}
       <header className="border-b border-border px-8 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <div className="size-7 rounded-lg bg-violet-500" />
-          <span className="text-lg font-semibold tracking-tight">Potlock</span>
+        <div>
+          <img src={logoPurple} alt="Potlock" className="h-25 w-auto" />
         </div>
         <Button variant="ghost" size="sm" onClick={() => disconnect()}>
           Disconnect
