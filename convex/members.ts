@@ -94,20 +94,16 @@ export const resolveJoinRequest = mutation({
     poolId: v.id("pools"),
     memberId: v.id("members"),
     action: v.union(v.literal("accept"), v.literal("reject")),
+    managerWallet: v.string(),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new ConvexError("Unauthenticated");
-
-    const callerWallet = identity.tokenIdentifier;
-
     // Verify caller is a manager in this pool
     const allMembers = await ctx.db
       .query("members")
       .withIndex("by_poolId", (q) => q.eq("poolId", args.poolId))
       .collect();
 
-    const caller = allMembers.find((m) => m.wallet === callerWallet);
+    const caller = allMembers.find((m) => m.wallet === args.managerWallet);
     if (!caller || caller.role !== "manager") {
       throw new ConvexError(
         "Only pool managers can accept or reject join requests.",

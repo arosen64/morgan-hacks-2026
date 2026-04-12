@@ -1,5 +1,5 @@
 import { internalMutation, mutation, query } from "./_generated/server";
-import type { QueryCtx } from "./_generated/server";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 import {
@@ -37,6 +37,45 @@ async function loadActiveMembersForPool(
   return rows
     .filter((m) => m.isActive !== false) // absent treated as active
     .map((m) => ({ id: m._id, role: m.role, isActive: true }));
+}
+
+// Commit an approved amendment contract — mirrors commitContract logic
+async function commitAmendment(
+  ctx: MutationCtx,
+  poolId: Id<"pools">,
+  contractJson: string,
+  contractHash: string,
+) {
+  const existing = await ctx.db
+    .query("contracts")
+    .withIndex("by_poolId", (q) => q.eq("poolId", poolId))
+    .collect();
+  const versionNumber = existing.length + 1;
+
+  const pool = await ctx.db.get(poolId);
+  const prevHash = pool?.activeContractHash;
+  if (prevHash) {
+    const prev = await ctx.db
+      .query("contracts")
+      .withIndex("by_hash", (q) => q.eq("hash", prevHash))
+      .unique();
+    if (prev) await ctx.db.patch(prev._id, { nextHash: contractHash });
+  }
+
+  await ctx.db.insert("contracts", {
+    poolId,
+    hash: contractHash,
+    versionNumber,
+    contractJson,
+    prevHash,
+    nextHash: undefined,
+    createdAt: Date.now(),
+  });
+
+  await ctx.db.patch(poolId, {
+    activeContractHash: contractHash,
+    status: "active",
+  });
 }
 
 function resolveRuleForProposal(
@@ -113,6 +152,19 @@ export const castVote = mutation({
         status: "approved",
         resolvedAt: Date.now(),
       });
+      // Auto-commit when an amendment proposal is unanimously approved
+      if (
+        proposal.type === "amendment" &&
+        proposal.contractJson &&
+        proposal.contractHash
+      ) {
+        await commitAmendment(
+          ctx,
+          proposal.poolId,
+          proposal.contractJson,
+          proposal.contractHash,
+        );
+      }
     } else if (
       !canStillReachQuorum(rule, votes, members, proposal.amount ?? undefined)
     ) {
@@ -134,6 +186,8 @@ export const createProposal = mutation({
     geminiValidation: v.optional(
       v.object({ pass: v.boolean(), explanation: v.string() }),
     ),
+    contractJson: v.optional(v.string()),
+    contractHash: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const pool = await ctx.db.get(args.poolId);
@@ -148,7 +202,7 @@ export const createProposal = mutation({
       throw new Error("Proposer is not an active member of this pool");
     }
 
-    return await ctx.db.insert("proposals", {
+    const proposalId = await ctx.db.insert("proposals", {
       poolId: args.poolId,
       proposerId: args.proposerId,
       type: args.type,
@@ -156,7 +210,44 @@ export const createProposal = mutation({
       amount: args.amount,
       status: "pending",
       geminiValidation: args.geminiValidation,
+      contractJson: args.contractJson,
+      contractHash: args.contractHash,
     });
+
+    // Auto-cast the proposer's approve vote
+    await ctx.db.insert("votes", {
+      proposalId,
+      memberId: args.proposerId,
+      vote: "approve",
+    });
+
+    // Check if unanimous is already satisfied (single-member pool)
+    if (args.type === "amendment" && args.contractJson && args.contractHash) {
+      const rule = resolveRuleForProposal(
+        pool as {
+          approvalRule?: ApprovalRule;
+          amendmentApprovalRule?: ApprovalRule;
+        },
+        "amendment",
+      );
+      const votes = await loadVotesForProposal(ctx, proposalId);
+      const members = await loadActiveMembersForPool(ctx, args.poolId);
+
+      if (evaluateApprovalRule(rule, votes, members, undefined)) {
+        await ctx.db.patch(proposalId, {
+          status: "approved",
+          resolvedAt: Date.now(),
+        });
+        await commitAmendment(
+          ctx,
+          args.poolId,
+          args.contractJson,
+          args.contractHash,
+        );
+      }
+    }
+
+    return proposalId;
   },
 });
 

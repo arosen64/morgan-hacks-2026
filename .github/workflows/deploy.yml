@@ -41,6 +41,7 @@ jobs:
         env:
           VITE_CONVEX_URL: ${{ secrets.VITE_CONVEX_URL }}
           VITE_CONVEX_SITE_URL: ${{ secrets.VITE_CONVEX_SITE_URL }}
+          VITE_PROGRAM_ID: ${{ secrets.VITE_PROGRAM_ID }}
 
       - uses: actions/configure-pages@v4
 

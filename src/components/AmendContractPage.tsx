@@ -9,21 +9,23 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import { ChevronLeft, Loader2 } from "lucide-react";
+import { ChevronLeft, Loader2, CheckCircle2 } from "lucide-react";
 
 interface AmendContractPageProps {
   poolId: Id<"pools">;
+  currentMemberId: Id<"members">;
   onSuccess: () => void;
   onBack: () => void;
 }
 
 export function AmendContractPage({
   poolId,
+  currentMemberId,
   onSuccess,
   onBack,
 }: AmendContractPageProps) {
   const generateAmendment = useAction(api.gemini.generateAmendment);
-  const commitContract = useMutation(api.contracts.commitContract);
+  const createProposal = useMutation(api.approvals.createProposal);
 
   const pool = useQuery(api.pools.getPool, { poolId });
   const contractVersions = useQuery(api.contracts.getContractVersions, {
@@ -37,6 +39,7 @@ export function AmendContractPage({
   } | null>(null);
   const [generating, setGenerating] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const activeContractJson = pool?.activeContractHash
@@ -79,21 +82,46 @@ export function AmendContractPage({
       const hash = await canonicalizeAndHash(preview.contract);
       const contractJson = JSON.stringify(preview.contract);
 
-      await commitContract({
+      await createProposal({
         poolId,
-        hash,
+        proposerId: currentMemberId,
+        type: "amendment",
+        description: amendmentDescription,
         contractJson,
-        prevHash: preview.prevHash,
+        contractHash: hash,
       });
 
-      onSuccess();
+      setSubmitted(true);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to commit amendment.",
+        err instanceof Error ? err.message : "Failed to submit amendment.",
       );
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (submitted) {
+    return (
+      <div className="flex flex-col gap-6 p-6 items-center text-center">
+        <CheckCircle2 className="w-12 h-12 text-green-500" />
+        <div>
+          <h2 className="text-xl font-bold text-foreground">
+            Submitted for Vote
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            All members must approve before the amendment takes effect. Check
+            Contract History to track votes.
+          </p>
+        </div>
+        <Button
+          className="bg-violet-600 hover:bg-violet-700"
+          onClick={onSuccess}
+        >
+          View Contract History
+        </Button>
+      </div>
+    );
   }
 
   return (
@@ -208,7 +236,7 @@ export function AmendContractPage({
                 Submitting…
               </>
             ) : (
-              "Confirm Amendment"
+              "Submit for Vote →"
             )}
           </Button>
         </div>
