@@ -61,22 +61,3 @@ export const saveAmendmentApprovalRule = mutation({
     });
   },
 });
-
-export const removeMember = mutation({
-  args: { memberId: v.id("members") },
-  handler: async (ctx, args) => {
-    const member = await ctx.db.get(args.memberId);
-    if (!member) throw new Error("Member not found");
-
-    await ctx.db.patch(args.memberId, { isActive: false });
-
-    // Re-evaluate pending proposals — any that can no longer reach quorum get rejected
-    await ctx.scheduler.runAfter(
-      0,
-      internal.approvals.reEvaluatePendingProposals,
-      {
-        poolId: member.poolId,
-      },
-    );
-  },
-});
